@@ -1,0 +1,59 @@
+{
+    "name": "fahimtayebee/preflight",
+    "description": "A Laravel project audit and security checker package.",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "security",
+        "audit",
+        "scanner",
+        "static-analysis",
+        "permissions",
+        "routes",
+        "sarif",
+        "ci"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Fahim Tayebee",
+            "email": "fahim.tayebee@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/fahimtayebee/preflight/issues",
+        "source": "https://github.com/fahimtayebee/preflight",
+        "docs": "https://github.com/fahimtayebee/preflight/tree/main/docs"
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "FahimTayebee\\Preflight\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "FahimTayebee\\Preflight\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "FahimTayebee\\Preflight\\PreflightServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

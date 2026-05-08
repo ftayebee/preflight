@@ -1,0 +1,38 @@
+name: Preflight
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  preflight:
+    name: Preflight Security Audit
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run Preflight SARIF audit
+        run: php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif --fail-on-severity=critical
+
+      - name: Upload Preflight SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: storage/app/preflight.sarif

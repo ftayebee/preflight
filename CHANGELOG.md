@@ -1,0 +1,26 @@
+# Changelog
+
+All notable changes to `preflight` will be documented in this file.
+
+## [0.1.0] - 2026-05-09
+
+### Added
+
+- Laravel project audit command.
+- Console, JSON, Markdown, and SARIF report formats.
+- GitHub Code Scanning compatible SARIF output.
+- Env, route, controller, model, migration, request, and Composer scanners.
+- Rule registry with stable issue codes.
+- Rule enable/disable configuration.
+- Rule severity overrides.
+- Scanner-specific options.
+- Baseline generation and baseline filtering.
+- Severity filtering.
+- Score-based CI gate.
+- Severity-based CI gate.
+- Config validation command.
+- Rule listing command.
+- Doctor command.
+- Self-test command.
+- GitHub Actions example workflow.
+- CI, configuration, commands, examples, false-positive, limitation, and release docs.
