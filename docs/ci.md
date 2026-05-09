@@ -149,6 +149,7 @@ This displays critical and high issues while hiding medium, low, and info issues
 For a first CI rollout on an existing project:
 
 ```bash
+php artisan preflight:audit --preset=relaxed --fail-on-severity=critical
 php artisan preflight:audit --baseline
 php artisan preflight:audit --use-baseline --fail-on-severity=critical
 ```
@@ -160,6 +161,7 @@ This lets the team block new critical issues without immediately failing on all 
 For projects ready for stricter gates:
 
 ```bash
+php artisan preflight:audit --preset=strict --fail-on-severity=high
 php artisan preflight:audit --use-baseline --fail-on-severity=high
 ```
 
@@ -168,3 +170,13 @@ For GitHub Code Scanning:
 ```bash
 php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif --use-baseline --fail-on-severity=high
 ```
+
+## Local Debugging With Explanations
+
+When a CI finding is unclear, reproduce it locally with expanded guidance:
+
+```bash
+php artisan preflight:audit --explain
+```
+
+This prints why each issue matters, how to fix it, examples when available, documentation links, and false-positive guidance.

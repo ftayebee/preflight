@@ -64,6 +64,8 @@ php artisan preflight:rules --format=md
 
 ### ENV_DEBUG_TRUE
 
+Docs anchor: `#env_debug_true`
+
 Impact: Debug mode can expose stack traces, environment values, SQL, and source paths to users.
 
 Bad example:
@@ -84,6 +86,8 @@ False-positive guidance: If this is a local-only fixture, scan with local enviro
 
 ### ROUTE_DESTRUCTIVE_GET
 
+Docs anchor: `#route_destructive_get`
+
 Impact: GET requests may be triggered by crawlers, previews, browser prefetching, or accidental clicks, causing unintended state changes.
 
 Bad example:
@@ -103,6 +107,8 @@ False-positive guidance: Add the route to `ignored_routes`, `public_route_allowl
 
 ### ROUTE_SENSITIVE_WITHOUT_AUTH
 
+Docs anchor: `#route_sensitive_without_auth`
+
 Impact: Sensitive routes can expose admin, account, settings, payment, or user-management actions to unauthenticated visitors.
 
 Bad example:
@@ -121,6 +127,8 @@ Route::get('/admin/users', [AdminUserController::class, 'index'])
 False-positive guidance: Add the route to `ignored_routes`, `public_route_allowlist`, or disable the rule in `config/preflight.php`.
 
 ### CONTROLLER_MISSING_AUTHORIZATION
+
+Docs anchor: `#controller_missing_authorization`
 
 Impact: Controller actions can become sensitive over time; missing visible authorization makes access control harder to review.
 
@@ -148,6 +156,8 @@ False-positive guidance: Add project-specific authorization keywords under `scan
 
 ### MODEL_GUARDED_EMPTY
 
+Docs anchor: `#model_guarded_empty`
+
 Impact: Every current and future column becomes mass assignable, which can expose privilege or ownership fields to request input.
 
 Bad example:
@@ -172,6 +182,8 @@ False-positive guidance: Disable `MODEL_GUARDED_EMPTY` for trusted internal mode
 
 ### REQUEST_AUTHORIZE_ALWAYS_TRUE
 
+Docs anchor: `#request_authorize_always_true`
+
 Impact: Validation does not decide who may perform an action; sensitive requests still need authorization checks.
 
 Bad example:
@@ -195,6 +207,8 @@ public function authorize(): bool
 False-positive guidance: Add public request classes to `scanners.requests.options.allow_authorize_true_for`.
 
 ### COMPOSER_DEBUG_PACKAGE_IN_REQUIRE
+
+Docs anchor: `#composer_debug_package_in_require`
 
 Impact: Debug packages can expose application internals or add unnecessary production attack surface.
 

@@ -100,6 +100,31 @@ php artisan preflight:audit --preset=strict --fail-on-severity=high
 
 Reports include `confidence_counts` so teams can see how many findings are high, medium, or low confidence.
 
+## False-Positive Guidance
+
+Preflight reports include confidence levels and, with `--explain`, rule-specific guidance for handling false positives. Prefer tuning scanner options or using a reviewed baseline before disabling broad rule groups.
+
+Examples:
+
+```bash
+php artisan preflight:audit --explain
+php artisan preflight:audit --preset=relaxed
+```
+
+See [False positives](docs/false-positives.md) and [Explainability](docs/explainability.md).
+
+## Tested Against
+
+Preflight is tested using fixture projects and real Laravel project structures, including:
+
+- Fresh Laravel-style project structure
+- Laravel API-style project structure
+- Laravel admin-panel style project structure
+- Risky project fixtures with known findings
+- Clean project fixtures with expected passing results
+
+These tests improve rule reliability, but they do not claim complete security coverage.
+
 ## Scanners
 
 - `EnvScanner`

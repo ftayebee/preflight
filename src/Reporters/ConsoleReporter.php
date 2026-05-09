@@ -30,6 +30,8 @@ final class ConsoleReporter implements ReporterInterface
         if (($report['filtered'] ?? false) === true) {
             $lines[] = 'Severity Filter: ' . $report['severity_filter'];
             $lines[] = 'Visible Issues: ' . ($report['visible_issues'] ?? count($report['results'])) . ' / ' . $report['total_issues'];
+        } elseif (($report['visible_issues'] ?? $report['total_issues']) !== $report['total_issues']) {
+            $lines[] = 'Visible Issues: ' . ($report['visible_issues'] ?? count($report['results'])) . ' / ' . $report['total_issues'];
         }
 
         $lines[] = '';

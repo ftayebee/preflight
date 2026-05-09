@@ -163,7 +163,25 @@ final class AuditCommandTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertSame('relaxed', $payload['meta']['preset']);
+        $this->assertSame(1, $payload['total_issues']);
+        $this->assertSame(0, $payload['visible_issues']);
         $this->assertNotContains('BLADE_UNGUARDED_ADMIN_ACTION', array_column($payload['results'], 'code'));
+
+        @unlink($path);
+    }
+
+    public function test_default_preset_keeps_current_behavior_for_low_confidence_findings(): void
+    {
+        config()->set('preflight.enabled_scanners', ['blade']);
+        config()->set('preflight.rules.BLADE_UNGUARDED_ADMIN_ACTION.enabled', true);
+        $path = $this->writeBlade('default-admin.blade.php', '<a href="/admin/users/1/edit">Edit admin</a>');
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'json']);
+        $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame('default', $payload['meta']['preset']);
+        $this->assertContains('BLADE_UNGUARDED_ADMIN_ACTION', array_column($payload['results'], 'code'));
 
         @unlink($path);
     }

@@ -10,6 +10,14 @@ All notable changes to `preflight` will be documented in this file.
 - BladeScanner.
 - AuthScanner.
 - Fix examples documentation.
+- Explainable audit output with --explain.
+- Confidence summary in reports.
+- Audit presets: relaxed, default, and strict.
+- SARIF rule help URLs.
+- False-positive guidance metadata.
+- Rule fixture tests for important findings.
+- Explainability documentation.
+- Tested-against README section.
 
 ### Improved
 

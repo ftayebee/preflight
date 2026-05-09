@@ -81,11 +81,10 @@ final class AuditManager
             $baselineIgnored = $baselineResult['ignored'];
         }
 
-        $results = $this->applyPreset($results, $preset);
-
+        $visibleResults = $this->applyPreset($results, $preset);
         $visibleResults = $severityFilter === null
-            ? $results
-            : $this->filterBySeverity($results, $severityFilter);
+            ? $visibleResults
+            : $this->filterBySeverity($visibleResults, $severityFilter);
 
         return [
             'meta' => [
