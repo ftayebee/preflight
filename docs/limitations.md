@@ -29,3 +29,11 @@ Shallow clones may need `fetch-depth: 0` or an explicit fetch of the base ref.
 Route, env, and auth checks are project-wide unless disabled in changed-files configuration.
 
 Some findings require a full scan and may not appear in changed-files mode.
+
+The HTML report is static.
+
+It does not provide a persistent dashboard.
+
+It does not store historical reports.
+
+Do not expose HTML reports publicly if file paths or project details are sensitive.

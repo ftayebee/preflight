@@ -2,6 +2,16 @@
 
 All notable changes to `preflight` will be documented in this file.
 
+## [0.5.0] - Unreleased
+
+### Added
+
+- Static HTML report format.
+- Standalone offline report rendering.
+- HTML report support for summary cards, issue details, baseline metadata, changed-files metadata, scanner timing, and explainability.
+- Optional --open flag for local report viewing.
+- HTML report documentation and CI artifact example.
+
 ## [0.4.0] - Unreleased
 
 ### Added

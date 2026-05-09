@@ -10,6 +10,7 @@ use FahimTayebee\Preflight\Core\BaselineManager;
 use FahimTayebee\Preflight\Core\ScannerContext;
 use FahimTayebee\Preflight\Reporters\ConsoleReporter;
 use FahimTayebee\Preflight\Reporters\Contracts\ReporterInterface;
+use FahimTayebee\Preflight\Reporters\HtmlReporter;
 use FahimTayebee\Preflight\Reporters\JsonReporter;
 use FahimTayebee\Preflight\Reporters\MarkdownReporter;
 use FahimTayebee\Preflight\Reporters\SarifReporter;
@@ -20,7 +21,7 @@ use Illuminate\Console\Command;
 final class AuditCommand extends Command
 {
     /** @var array<int, string> */
-    private array $formats = ['console', 'json', 'md', 'markdown', 'sarif'];
+    private array $formats = ['console', 'json', 'md', 'markdown', 'sarif', 'html'];
 
     /** @var array<int, string> */
     private array $severities = ['critical', 'high', 'medium', 'low', 'info'];
@@ -29,7 +30,7 @@ final class AuditCommand extends Command
     private array $presets = ['relaxed', 'default', 'strict'];
 
     protected $signature = 'preflight:audit
-        {--format=console : Output format: console, json, md, or sarif}
+        {--format=console : Output format: console, json, md, sarif, or html}
         {--output= : Save report output to a file path}
         {--severity= : Only show issues at or above this severity level}
         {--fail-under= : Exit with failure if score is under this value}
@@ -41,7 +42,8 @@ final class AuditCommand extends Command
         {--explain : Include expanded explanation, examples, docs, and false-positive guidance}
         {--preset=default : Runtime preset: relaxed, default, or strict}
         {--changed : Audit only changed files where scanners support it}
-        {--base-ref= : Git base ref for changed-files mode}';
+        {--base-ref= : Git base ref for changed-files mode}
+        {--open : Open an HTML output report in the default browser after saving}';
 
     protected $description = 'Run a Preflight security audit against the host Laravel project.';
 
@@ -52,6 +54,7 @@ final class AuditCommand extends Command
         JsonReporter $jsonReporter,
         MarkdownReporter $markdownReporter,
         SarifReporter $sarifReporter,
+        HtmlReporter $htmlReporter,
         GitChangedFilesResolver $changedFilesResolver,
         PathResolver $paths,
     ): int {
@@ -72,7 +75,7 @@ final class AuditCommand extends Command
         ];
 
         if (! in_array($format, $this->formats, true)) {
-            $this->error('Invalid format. Supported formats: console, json, md, sarif');
+            $this->error('Invalid format. Supported formats: console, json, md, sarif, html');
 
             return self::FAILURE;
         }
@@ -144,16 +147,25 @@ final class AuditCommand extends Command
             return self::SUCCESS;
         }
 
-        $reporter = $this->reporter($format, $consoleReporter, $jsonReporter, $markdownReporter, $sarifReporter);
+        $reporter = $this->reporter($format, $consoleReporter, $jsonReporter, $markdownReporter, $sarifReporter, $htmlReporter);
         $output = $reporter->render($report);
         $outputPath = $this->option('output');
+
+        if ($format === 'html' && ($outputPath === null || $outputPath === '')) {
+            $outputPath = (string) config('preflight.html.default_output', storage_path('app/preflight-report.html'));
+            $this->warn('HTML format is best used with --output.');
+        }
 
         if ($outputPath !== null && $outputPath !== '') {
             if (! $this->writeReport((string) $outputPath, $output)) {
                 return self::FAILURE;
             }
 
-            $this->line('Report saved to: ' . $outputPath);
+            $this->line($format === 'html' ? 'HTML report saved to: ' . $outputPath : 'Report saved to: ' . $outputPath);
+
+            if ($format === 'html' && (bool) $this->option('open')) {
+                $this->openHtmlReport((string) $outputPath);
+            }
         } else {
             $this->line($output);
         }
@@ -175,12 +187,14 @@ final class AuditCommand extends Command
         JsonReporter $jsonReporter,
         MarkdownReporter $markdownReporter,
         SarifReporter $sarifReporter,
+        HtmlReporter $htmlReporter,
     ): ReporterInterface {
         return match ($format) {
             'console' => $consoleReporter,
             'json' => $jsonReporter,
             'md', 'markdown' => $markdownReporter,
             'sarif' => $sarifReporter,
+            'html' => $htmlReporter,
         };
     }
 
@@ -259,5 +273,33 @@ final class AuditCommand extends Command
         }
 
         return $path;
+    }
+
+    private function openHtmlReport(string $path): void
+    {
+        $resolved = $this->resolveOutputPath($path);
+        $command = PHP_OS_FAMILY === 'Windows'
+            ? ['cmd', '/c', 'start', '', $resolved]
+            : (PHP_OS_FAMILY === 'Darwin' ? ['open', $resolved] : ['xdg-open', $resolved]);
+
+        $descriptorSpec = [
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+        $process = @proc_open($command, $descriptorSpec, $pipes);
+
+        if (! is_resource($process)) {
+            $this->warn('Unable to open HTML report automatically.');
+            return;
+        }
+
+        foreach ($pipes as $pipe) {
+            fclose($pipe);
+        }
+
+        $exitCode = proc_close($process);
+        if ($exitCode !== 0) {
+            $this->warn('Unable to open HTML report automatically.');
+        }
     }
 }

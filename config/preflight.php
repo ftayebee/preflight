@@ -352,5 +352,10 @@ return [
         'format' => 'console',
     ],
 
+    'html' => [
+        'default_output' => storage_path('app/preflight-report.html'),
+        'open_after_generation' => false,
+    ],
+
     'fail_under' => null,
 ];

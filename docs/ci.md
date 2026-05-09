@@ -211,3 +211,16 @@ php artisan preflight:audit --changed --base-ref=origin/main --format=sarif --ou
 ```
 
 In GitHub Actions, use `fetch-depth: 0` when the base ref is not available in the default shallow checkout.
+
+## HTML Report Artifact
+
+```yaml
+- name: Run Preflight HTML report
+  run: php artisan preflight:audit --format=html --output=storage/app/preflight-report.html --preset=relaxed
+
+- name: Upload Preflight HTML report
+  uses: actions/upload-artifact@v4
+  with:
+    name: preflight-html-report
+    path: storage/app/preflight-report.html
+```

@@ -6,7 +6,7 @@ Runs the project audit.
 
 Options:
 
-- `--format=console|json|md|sarif`
+- `--format=console|json|md|sarif|html`
 - `--output=path`
 - `--baseline`
 - `--use-baseline`
@@ -19,6 +19,15 @@ Options:
 - `--preset=relaxed|default|strict`
 - `--changed`
 - `--base-ref=origin/main`
+- `--open`
+
+HTML examples:
+
+```bash
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html --explain
+php artisan preflight:audit --format=html --open
+```
 
 ## preflight:rules
 

@@ -127,6 +127,155 @@ final class AuditCommandTest extends TestCase
         $this->assertStringContainsString('| High |', $output);
     }
 
+    public function test_html_report_returns_valid_looking_html(): void
+    {
+        config()->set('preflight.enabled_scanners', []);
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'html', '--output' => 'storage/app/preflight-test.html']);
+        $output = (string) file_get_contents(base_path('storage/app/preflight-test.html'));
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('<!doctype html>', $output);
+        $this->assertStringContainsString('Laravel Project Audit Report', $output);
+
+        @unlink(base_path('storage/app/preflight-test.html'));
+    }
+
+    public function test_html_output_file_is_created_and_contains_summary(): void
+    {
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=base64:test\n");
+        $path = 'storage/app/preflight-report-test.html';
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'html', '--output' => $path]);
+        $html = (string) file_get_contents(base_path($path));
+
+        $this->assertSame(0, $exitCode);
+        $this->assertFileExists(base_path($path));
+        $this->assertStringContainsString('Score', $html);
+        $this->assertStringContainsString('<table>', $html);
+        $this->assertStringContainsString('<details class="issue">', $html);
+
+        @unlink(base_path($path));
+    }
+
+    public function test_html_report_escapes_dynamic_content(): void
+    {
+        $reporter = app(\FahimTayebee\Preflight\Reporters\HtmlReporter::class);
+        $result = new AuditResult('ENV_DEBUG_TRUE', 'env', Severity::Critical, '<script>alert(1)</script>', '<b>bad</b>', '<img src=x onerror=alert(1)>', null, '<i>fix</i>', 'high');
+
+        $html = $reporter->render([
+            'meta' => ['generated_at' => 'now', 'project_path' => '<script>p</script>', 'package' => 'Preflight'],
+            'score' => 50,
+            'counts' => ['critical' => 1, 'high' => 0, 'medium' => 0, 'low' => 0, 'info' => 0],
+            'confidence_counts' => ['high' => 1, 'medium' => 0, 'low' => 0],
+            'total_issues' => 1,
+            'visible_issues' => 1,
+            'results' => [$result],
+            'scanner_timings' => [],
+            'baseline' => ['used' => false],
+            'changed_files' => ['enabled' => false],
+        ]);
+
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertStringContainsString('&lt;b&gt;bad&lt;/b&gt;', $html);
+    }
+
+    public function test_html_includes_explainability_when_explain_is_used(): void
+    {
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=base64:test\n");
+        $path = 'storage/app/preflight-explain.html';
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'html', '--output' => $path, '--explain' => true]);
+        $html = (string) file_get_contents(base_path($path));
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Impact', $html);
+        $this->assertStringContainsString('Bad example', $html);
+        $this->assertStringContainsString('Better example', $html);
+        $this->assertStringContainsString('False-positive guidance', $html);
+
+        @unlink(base_path($path));
+    }
+
+    public function test_html_includes_baseline_metadata_when_baseline_used(): void
+    {
+        $baselinePath = base_path('storage/app/preflight-html-baseline.json');
+        config()->set('preflight.baseline.file', $baselinePath);
+        config()->set('preflight.baseline_file', $baselinePath);
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=base64:test\n");
+        Artisan::call('preflight:baseline', ['action' => 'generate']);
+        $path = 'storage/app/preflight-baseline.html';
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'html', '--output' => $path, '--use-baseline' => true]);
+        $html = (string) file_get_contents(base_path($path));
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Baseline', $html);
+        $this->assertStringContainsString('Ignored', $html);
+
+        @unlink(base_path($path));
+        @unlink($baselinePath);
+    }
+
+    public function test_html_includes_changed_files_metadata(): void
+    {
+        app()->instance(\FahimTayebee\Preflight\Support\GitChangedFilesResolver::class, new class extends \FahimTayebee\Preflight\Support\GitChangedFilesResolver {
+            public function __construct()
+            {
+            }
+
+            public function changedFiles(string $baseRef = 'origin/main'): array
+            {
+                return ['app/Http/Controllers/FooController.php'];
+            }
+
+            public function lastError(): ?string
+            {
+                return null;
+            }
+        });
+        config()->set('preflight.enabled_scanners', []);
+        $path = 'storage/app/preflight-changed.html';
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'html', '--output' => $path, '--changed' => true]);
+        $html = (string) file_get_contents(base_path($path));
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Changed Files Mode', $html);
+        $this->assertStringContainsString('app/Http/Controllers/FooController.php', $html);
+
+        @unlink(base_path($path));
+    }
+
+    public function test_html_auto_saves_when_output_is_missing(): void
+    {
+        config()->set('preflight.enabled_scanners', []);
+        $path = base_path('storage/app/preflight-auto.html');
+        config()->set('preflight.html.default_output', $path);
+        @unlink($path);
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'html']);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertFileExists($path);
+        $this->assertStringContainsString('HTML report saved to:', Artisan::output());
+
+        @unlink($path);
+    }
+
+    public function test_html_open_does_not_fail_without_html_output_context(): void
+    {
+        config()->set('preflight.enabled_scanners', []);
+
+        $exitCode = Artisan::call('preflight:audit', ['--open' => true]);
+
+        $this->assertSame(0, $exitCode);
+    }
+
     public function test_sarif_includes_help_uri_for_rule_docs(): void
     {
         config()->set('preflight.enabled_scanners', ['env']);
@@ -317,7 +466,7 @@ final class AuditCommandTest extends TestCase
         $exitCode = Artisan::call('preflight:audit', ['--format' => 'xml']);
 
         $this->assertSame(1, $exitCode);
-        $this->assertStringContainsString('Invalid format. Supported formats: console, json, md, sarif', Artisan::output());
+        $this->assertStringContainsString('Invalid format. Supported formats: console, json, md, sarif, html', Artisan::output());
     }
 
     public function test_severity_filter_shows_only_requested_severities_and_above(): void
@@ -1046,6 +1195,7 @@ PHP);
             '--fail-on-resolved',
             '--changed',
             '--base-ref',
+            '--open',
         ];
 
         $this->assertSame([], array_values(array_diff(array_unique($matches[0]), $supported)));

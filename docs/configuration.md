@@ -248,6 +248,19 @@ Customize SARIF tool metadata:
 ],
 ```
 
+## HTML Reports
+
+Configure the default HTML output path:
+
+```php
+'html' => [
+    'default_output' => storage_path('app/preflight-report.html'),
+    'open_after_generation' => false,
+],
+```
+
+When `--format=html` is used without `--output`, Preflight writes to `html.default_output`.
+
 ## Config Check
 
 Validate Preflight config:

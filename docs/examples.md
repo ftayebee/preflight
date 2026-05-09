@@ -112,3 +112,27 @@ Typical protected admin routes combine identity and authorization:
 Route::get('/admin/users', [AdminUserController::class, 'index'])
     ->middleware(['auth', 'permission:users.view']);
 ```
+
+## Generate A Local HTML Report
+
+```bash
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html
+```
+
+## Generate An Explainable HTML Report
+
+```bash
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html --explain
+```
+
+## Generate A CI Artifact HTML Report
+
+```bash
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html --preset=relaxed
+```
+
+## Generate HTML With Changed Files Mode
+
+```bash
+php artisan preflight:audit --changed --base-ref=origin/main --format=html --output=storage/app/preflight-report.html
+```

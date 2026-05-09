@@ -71,12 +71,24 @@ Preflight supports:
 - `json`
 - `md`
 - `sarif`
+- `html`
 
 SARIF output can be uploaded to GitHub Code Scanning:
 
 ```bash
 php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif
 ```
+
+## HTML Reports
+
+HTML reports are static, shareable audit reports for local review, clients, and CI artifacts. They are standalone files with inline CSS and no external assets.
+
+```bash
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html
+php artisan preflight:audit --format=html --output=storage/app/preflight-report.html --explain
+```
+
+If `--format=html` is used without `--output`, Preflight saves to the configured default path: `storage/app/preflight-report.html`.
 
 ## Explainability And Presets
 
