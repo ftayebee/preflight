@@ -46,7 +46,17 @@ final class ConsoleReporter implements ReporterInterface
         $lines[] = '- Medium: ' . ($report['confidence_counts']['medium'] ?? 0);
         $lines[] = '- Low: ' . ($report['confidence_counts']['low'] ?? 0);
 
-        if (($report['baseline_ignored_issues'] ?? 0) > 0) {
+        if (($report['baseline']['used'] ?? false) === true) {
+            $lines[] = '';
+            $lines[] = 'Baseline ignored issues: ' . ($report['baseline']['ignored'] ?? $report['baseline_ignored_issues'] ?? 0);
+            $lines[] = 'New issues after baseline: ' . ($report['baseline']['new'] ?? count($report['results']));
+            $resolved = (int) ($report['baseline']['resolved'] ?? 0);
+            $lines[] = 'Resolved baseline entries: ' . $resolved;
+
+            if ($resolved > 0) {
+                $lines[] = 'Run php artisan preflight:baseline prune to remove resolved baseline entries.';
+            }
+        } elseif (($report['baseline_ignored_issues'] ?? 0) > 0) {
             $lines[] = '';
             $lines[] = 'Baseline ignored issues: ' . $report['baseline_ignored_issues'];
         }

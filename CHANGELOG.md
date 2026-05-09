@@ -2,6 +2,21 @@
 
 All notable changes to `preflight` will be documented in this file.
 
+## [0.3.0] - Unreleased
+
+### Added
+
+- Dedicated preflight:baseline command.
+- Baseline show, generate, prune, and clear actions.
+- Baseline diff metadata.
+- Baseline CI enforcement with --fail-on-new.
+- Resolved baseline entry detection.
+
+### Improved
+
+- preflight:audit --use-baseline now reports ignored, new, and resolved baseline counts.
+- Baseline documentation for existing project adoption.
+
 ## [0.2.0] - Unreleased
 
 ### Added

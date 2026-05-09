@@ -54,7 +54,21 @@ final class MarkdownReporter implements ReporterInterface
             '| Low | ' . ($report['confidence_counts']['low'] ?? 0) . ' |',
         ]);
 
-        if (($report['baseline_ignored_issues'] ?? 0) > 0) {
+        if (($report['baseline']['used'] ?? false) === true) {
+            $lines[] = '';
+            $lines[] = '## Baseline';
+            $lines[] = '';
+            $lines[] = '| Metric | Count |';
+            $lines[] = '|---|---:|';
+            $lines[] = '| Ignored | ' . ($report['baseline']['ignored'] ?? 0) . ' |';
+            $lines[] = '| New | ' . ($report['baseline']['new'] ?? 0) . ' |';
+            $lines[] = '| Resolved | ' . ($report['baseline']['resolved'] ?? 0) . ' |';
+
+            if (($report['baseline']['resolved'] ?? 0) > 0) {
+                $lines[] = '';
+                $lines[] = 'Run `php artisan preflight:baseline prune` to remove resolved baseline entries.';
+            }
+        } elseif (($report['baseline_ignored_issues'] ?? 0) > 0) {
             $lines[] = '';
             $lines[] = '**Baseline ignored issues:** ' . $report['baseline_ignored_issues'];
         }

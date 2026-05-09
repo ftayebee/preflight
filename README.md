@@ -55,6 +55,7 @@ php artisan preflight:audit --preset=strict --fail-on-severity=high
 | Command | Purpose |
 | --- | --- |
 | `php artisan preflight:audit` | Run the audit and generate a report. |
+| `php artisan preflight:baseline` | Show, generate, prune, or clear the baseline. |
 | `php artisan preflight:rules` | List known rules and configured severities. |
 | `php artisan preflight:config-check` | Validate Preflight configuration. |
 | `php artisan preflight:doctor` | Check whether Preflight is ready in the host project. |
@@ -162,14 +163,33 @@ php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif 
 
 An example GitHub Code Scanning workflow is included at [.github/workflows/preflight.yml.example](.github/workflows/preflight.yml.example).
 
-## Baseline Usage
+## Baseline Management
 
 Baselines help teams adopt Preflight on existing projects without failing CI on every reviewed historical finding.
 
 Generate a baseline:
 
 ```bash
+php artisan preflight:baseline generate
 php artisan preflight:audit --baseline
+```
+
+Show the current baseline:
+
+```bash
+php artisan preflight:baseline show
+```
+
+Remove entries for issues that have been fixed:
+
+```bash
+php artisan preflight:baseline prune
+```
+
+Clear the baseline:
+
+```bash
+php artisan preflight:baseline clear --force
 ```
 
 Run while ignoring baseline findings:
@@ -182,8 +202,14 @@ Recommended first-time flow:
 
 ```bash
 php artisan preflight:audit
-php artisan preflight:audit --baseline
+php artisan preflight:baseline generate
 php artisan preflight:audit --use-baseline --fail-on-severity=critical
+```
+
+CI can enforce that no new unbaselined issues were introduced:
+
+```bash
+php artisan preflight:baseline show --fail-on-new
 ```
 
 Review baseline changes before committing them.

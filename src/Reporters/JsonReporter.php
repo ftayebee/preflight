@@ -25,6 +25,13 @@ final class JsonReporter implements ReporterInterface
             'confidence_counts' => $report['confidence_counts'] ?? ['high' => 0, 'medium' => 0, 'low' => 0],
             'scanner_timings' => $report['scanner_timings'] ?? [],
             'baseline_ignored_issues' => $report['baseline_ignored_issues'] ?? 0,
+            'baseline' => $report['baseline'] ?? [
+                'used' => false,
+                'ignored' => 0,
+                'new' => $report['total_issues'],
+                'resolved' => 0,
+                'file' => null,
+            ],
             'results' => array_map(
                 static fn (AuditResult $result): array => self::result($result, (bool) ($report['explain'] ?? false)),
                 $report['results']

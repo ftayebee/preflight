@@ -38,35 +38,38 @@ php artisan preflight:audit --preset=strict
 
 ## Start With A Baseline
 
-For existing projects, generate a baseline first:
+For existing projects, use a reviewed baseline workflow:
 
 ```bash
-php artisan preflight:audit --baseline
-php artisan preflight:audit --use-baseline
-```
-
-This lets your team focus on new findings while gradually reviewing older ones.
-
-Recommended first-time workflow:
-
-```bash
-php artisan preflight:audit
-php artisan preflight:audit --baseline
+php artisan preflight:audit --explain
+php artisan preflight:baseline generate
 php artisan preflight:audit --use-baseline --fail-on-severity=critical
+php artisan preflight:baseline prune
 ```
+
+The baseline is not a fix. It records reviewed existing findings so CI can focus on new issues while the team pays down older ones.
+
+Recommended adoption workflow:
+
+1. Run `php artisan preflight:audit --explain`.
+2. Review issues and decide what is real, accepted, or tuned.
+3. Generate a baseline with `php artisan preflight:baseline generate`.
+4. Use `php artisan preflight:audit --use-baseline --fail-on-severity=critical` in CI.
+5. Periodically prune resolved entries with `php artisan preflight:baseline prune`.
 
 Use a baseline for existing reviewed findings. Do not use a baseline to suppress new critical issues without review.
 
 To regenerate a baseline:
 
 ```bash
-php artisan preflight:audit --baseline
+php artisan preflight:baseline generate
 ```
 
 Review baseline diffs before committing. In CI, combine baselines with severity gates:
 
 ```bash
 php artisan preflight:audit --use-baseline --fail-on-severity=high
+php artisan preflight:baseline show --fail-on-new
 ```
 
 ## Disable A Rule

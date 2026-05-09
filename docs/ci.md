@@ -82,6 +82,7 @@ uses: github/codeql-action/upload-sarif@v3
 For existing projects, generate a baseline first:
 
 ```bash
+php artisan preflight:baseline generate
 php artisan preflight:audit --baseline
 ```
 
@@ -91,6 +92,18 @@ Then run CI against new or changed findings:
 
 ```bash
 php artisan preflight:audit --use-baseline --fail-on-severity=high
+```
+
+Strict baseline enforcement can run the baseline diff directly:
+
+```bash
+php artisan preflight:baseline show --fail-on-new
+```
+
+Prune resolved baseline entries during maintenance:
+
+```bash
+php artisan preflight:baseline prune
 ```
 
 ## Rule Override Strategy
@@ -128,6 +141,7 @@ Rule config is applied before baseline generation and filtering. A recommended a
 
 ```bash
 php artisan preflight:rules
+php artisan preflight:baseline generate
 php artisan preflight:audit --baseline
 php artisan preflight:audit --use-baseline --fail-on-severity=critical
 ```

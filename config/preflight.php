@@ -304,6 +304,12 @@ return [
     | Reports And Baselines
     |--------------------------------------------------------------------------
     */
+    'baseline' => [
+        'file' => base_path('preflight-baseline.json'),
+        'include_resolved_warning' => true,
+        'format_version' => 1,
+    ],
+
     'baseline_file' => base_path('preflight-baseline.json'),
 
     'default_format' => 'console',

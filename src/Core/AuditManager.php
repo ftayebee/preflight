@@ -74,11 +74,15 @@ final class AuditManager
         $results = $this->enrich($results);
         $results = $this->deduplicate($results);
         $baselineIgnored = 0;
+        $baselineResolved = 0;
+        $baselineFile = $this->baseline->path();
 
         if ($useBaseline) {
+            $baselineDiff = $this->baseline->diff($results);
             $baselineResult = $this->baseline->filter($results);
             $results = $baselineResult['results'];
             $baselineIgnored = $baselineResult['ignored'];
+            $baselineResolved = (int) ($baselineDiff['counts']['resolved'] ?? 0);
         }
 
         $visibleResults = $this->applyPreset($results, $preset);
@@ -110,6 +114,13 @@ final class AuditManager
             'severity_filter' => $severityFilter,
             'scanner_timings' => $timings,
             'baseline_ignored_issues' => $baselineIgnored,
+            'baseline' => [
+                'used' => $useBaseline,
+                'ignored' => $baselineIgnored,
+                'new' => count($results),
+                'resolved' => $baselineResolved,
+                'file' => $baselineFile,
+            ],
         ];
     }
 

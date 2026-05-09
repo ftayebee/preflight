@@ -33,6 +33,15 @@ final class SarifReporter implements ReporterInterface
             '$schema' => 'https://json.schemastore.org/sarif-2.1.0.json',
             'runs' => [
                 [
+                    'properties' => [
+                        'baseline' => $report['baseline'] ?? [
+                            'used' => false,
+                            'ignored' => 0,
+                            'new' => $report['total_issues'] ?? 0,
+                            'resolved' => 0,
+                            'file' => null,
+                        ],
+                    ],
                     'invocations' => [
                         [
                             'executionSuccessful' => true,

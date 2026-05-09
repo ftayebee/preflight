@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FahimTayebee\Preflight;
 
 use FahimTayebee\Preflight\Commands\AuditCommand;
+use FahimTayebee\Preflight\Commands\BaselineCommand;
 use FahimTayebee\Preflight\Commands\ConfigCheckCommand;
 use FahimTayebee\Preflight\Commands\DoctorCommand;
 use FahimTayebee\Preflight\Commands\ListRulesCommand;
@@ -27,6 +28,7 @@ final class PreflightServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 AuditCommand::class,
+                BaselineCommand::class,
                 ConfigCheckCommand::class,
                 DoctorCommand::class,
                 ListRulesCommand::class,
