@@ -41,6 +41,14 @@ final class SarifReporter implements ReporterInterface
                             'resolved' => 0,
                             'file' => null,
                         ],
+                        'changed_files' => $report['changed_files'] ?? [
+                            'enabled' => false,
+                            'base_ref' => null,
+                            'count' => 0,
+                            'files' => [],
+                            'error' => null,
+                            'fallback_used' => false,
+                        ],
                     ],
                     'invocations' => [
                         [

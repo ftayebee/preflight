@@ -1044,6 +1044,8 @@ PHP);
             '--force',
             '--fail-on-new',
             '--fail-on-resolved',
+            '--changed',
+            '--base-ref',
         ];
 
         $this->assertSame([], array_values(array_diff(array_unique($matches[0]), $supported)));

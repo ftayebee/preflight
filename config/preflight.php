@@ -312,6 +312,27 @@ return [
 
     'baseline_file' => base_path('preflight-baseline.json'),
 
+    'changed_files' => [
+        'enabled' => true,
+        'default_base_ref' => 'origin/main',
+        'fallback_to_full_scan' => true,
+        'include_project_scanners' => true,
+        'file_scanners' => [
+            'controllers',
+            'models',
+            'migrations',
+            'requests',
+            'composer',
+            'blade',
+            'policies',
+        ],
+        'project_scanners' => [
+            'env',
+            'routes',
+            'auth',
+        ],
+    ],
+
     'default_format' => 'console',
 
     'sarif' => [

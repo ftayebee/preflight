@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -30,6 +32,14 @@ jobs:
 
       - name: Run Preflight SARIF audit
         run: php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif --fail-on-severity=critical
+
+      # Pull request alternative:
+      # - name: Run Preflight on changed files
+      #   run: php artisan preflight:audit --changed --base-ref=origin/main --preset=relaxed --fail-on-severity=critical
+      #
+      # Changed-files SARIF alternative:
+      # - name: Run Preflight changed-files SARIF audit
+      #   run: php artisan preflight:audit --changed --base-ref=origin/main --format=sarif --output=storage/app/preflight.sarif --fail-on-severity=critical
 
       - name: Upload Preflight SARIF
         uses: github/codeql-action/upload-sarif@v3

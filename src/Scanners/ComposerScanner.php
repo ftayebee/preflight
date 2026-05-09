@@ -6,13 +6,17 @@ namespace FahimTayebee\Preflight\Scanners;
 
 use FahimTayebee\Preflight\Core\AuditResult;
 use FahimTayebee\Preflight\Core\Severity;
+use FahimTayebee\Preflight\Scanners\Concerns\UsesScannerContext;
+use FahimTayebee\Preflight\Scanners\Contracts\ContextAwareScannerInterface;
 use FahimTayebee\Preflight\Scanners\Contracts\ScannerInterface;
 use FahimTayebee\Preflight\Support\FileReader;
 use FahimTayebee\Preflight\Support\PathResolver;
 use FahimTayebee\Preflight\Support\ScannerOptionResolver;
 
-final class ComposerScanner implements ScannerInterface
+final class ComposerScanner implements ScannerInterface, ContextAwareScannerInterface
 {
+    use UsesScannerContext;
+
     public function __construct(
         private readonly PathResolver $paths,
         private readonly FileReader $files,
@@ -29,11 +33,17 @@ final class ComposerScanner implements ScannerInterface
     {
         $results = [];
         $composerPath = $this->paths->composerJson();
+        $lockPath = $this->paths->composerLock();
+
+        if ($this->isChangedMode() && ! $this->shouldScanFile($composerPath) && ! $this->shouldScanFile($lockPath)) {
+            return [];
+        }
+
         $composerContents = $this->files->get($composerPath);
 
-        if (! is_file($this->paths->composerLock())) {
+        if (! is_file($lockPath)) {
             $results[] = new AuditResult('COMPOSER_LOCK_MISSING', $this->name(), Severity::Medium, 'composer.lock is missing', 'composer.lock was not found.', 'composer.lock', null, 'Commit composer.lock for applications to keep dependency installs reproducible.', 'high');
-        } elseif ($this->isLockOutdated($composerPath, $this->paths->composerLock())) {
+        } elseif ($this->isLockOutdated($composerPath, $lockPath)) {
             $results[] = new AuditResult('COMPOSER_LOCK_OUTDATED', $this->name(), Severity::Medium, 'composer.lock may be outdated', 'composer.json appears newer than composer.lock.', 'composer.lock', null, 'Run composer update or composer install and commit the updated lock file.', 'medium');
         }
 

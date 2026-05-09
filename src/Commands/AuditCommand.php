@@ -7,11 +7,14 @@ namespace FahimTayebee\Preflight\Commands;
 use FahimTayebee\Preflight\Core\AuditManager;
 use FahimTayebee\Preflight\Core\AuditResult;
 use FahimTayebee\Preflight\Core\BaselineManager;
+use FahimTayebee\Preflight\Core\ScannerContext;
 use FahimTayebee\Preflight\Reporters\ConsoleReporter;
 use FahimTayebee\Preflight\Reporters\Contracts\ReporterInterface;
 use FahimTayebee\Preflight\Reporters\JsonReporter;
 use FahimTayebee\Preflight\Reporters\MarkdownReporter;
 use FahimTayebee\Preflight\Reporters\SarifReporter;
+use FahimTayebee\Preflight\Support\GitChangedFilesResolver;
+use FahimTayebee\Preflight\Support\PathResolver;
 use Illuminate\Console\Command;
 
 final class AuditCommand extends Command
@@ -36,7 +39,9 @@ final class AuditCommand extends Command
         {--baseline : Generate a baseline file from current issues}
         {--use-baseline : Ignore issues already stored in baseline}
         {--explain : Include expanded explanation, examples, docs, and false-positive guidance}
-        {--preset=default : Runtime preset: relaxed, default, or strict}';
+        {--preset=default : Runtime preset: relaxed, default, or strict}
+        {--changed : Audit only changed files where scanners support it}
+        {--base-ref= : Git base ref for changed-files mode}';
 
     protected $description = 'Run a Preflight security audit against the host Laravel project.';
 
@@ -47,12 +52,24 @@ final class AuditCommand extends Command
         JsonReporter $jsonReporter,
         MarkdownReporter $markdownReporter,
         SarifReporter $sarifReporter,
+        GitChangedFilesResolver $changedFilesResolver,
+        PathResolver $paths,
     ): int {
         $format = strtolower((string) ($this->option('format') ?: config('preflight.default_format', 'console')));
         $severityFilter = $this->normalizedSeverityOption('severity');
         $failOnSeverity = $this->normalizedSeverityOption('fail-on-severity');
         $failUnder = $this->option('fail-under') ?? config('preflight.fail_under');
         $preset = strtolower((string) ($this->option('preset') ?: 'default'));
+        $changedMode = (bool) $this->option('changed');
+        $baseRef = (string) ($this->option('base-ref') ?: config('preflight.changed_files.default_base_ref', 'origin/main'));
+        $changedFilesMeta = [
+            'enabled' => $changedMode,
+            'base_ref' => $changedMode ? $baseRef : null,
+            'count' => 0,
+            'files' => [],
+            'error' => null,
+            'fallback_used' => false,
+        ];
 
         if (! in_array($format, $this->formats, true)) {
             $this->error('Invalid format. Supported formats: console, json, md, sarif');
@@ -72,12 +89,43 @@ final class AuditCommand extends Command
             return self::FAILURE;
         }
 
+        $context = null;
+        if ($changedMode) {
+            $changedFiles = $changedFilesResolver->changedFiles($baseRef);
+            $error = $changedFilesResolver->lastError();
+            $fallbackToFullScan = (bool) config('preflight.changed_files.fallback_to_full_scan', true);
+
+            $changedFilesMeta = [
+                'enabled' => true,
+                'base_ref' => $baseRef,
+                'count' => count($changedFiles),
+                'files' => $changedFiles,
+                'error' => $error,
+                'fallback_used' => false,
+            ];
+
+            if ($error !== null) {
+                if (! $fallbackToFullScan) {
+                    $this->error('Changed mode error: ' . $error);
+
+                    return self::FAILURE;
+                }
+
+                $changedFilesMeta['fallback_used'] = true;
+                $context = new ScannerContext(false, [], $baseRef, $paths->base(), (array) $this->option('only'), (array) $this->option('skip'));
+            } else {
+                $context = new ScannerContext(true, $changedFiles, $baseRef, $paths->base(), (array) $this->option('only'), (array) $this->option('skip'));
+            }
+        }
+
         $report = $manager->run(
             (array) $this->option('only'),
             (array) $this->option('skip'),
             (bool) $this->option('use-baseline'),
             $severityFilter,
-            $preset
+            $preset,
+            $context,
+            $changedFilesMeta
         );
         $report['explain'] = (bool) $this->option('explain');
 

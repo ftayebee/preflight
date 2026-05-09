@@ -194,3 +194,20 @@ php artisan preflight:audit --explain
 ```
 
 This prints why each issue matters, how to fix it, examples when available, documentation links, and false-positive guidance.
+
+## Pull Request Changed Files Mode
+
+For pull requests, run Preflight against changed files:
+
+```yaml
+- name: Run Preflight on changed files
+  run: php artisan preflight:audit --changed --base-ref=origin/main --preset=relaxed --fail-on-severity=critical
+```
+
+For SARIF:
+
+```bash
+php artisan preflight:audit --changed --base-ref=origin/main --format=sarif --output=storage/app/preflight.sarif
+```
+
+In GitHub Actions, use `fetch-depth: 0` when the base ref is not available in the default shallow checkout.

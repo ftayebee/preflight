@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FahimTayebee\Preflight\Core;
 
 use FahimTayebee\Preflight\Scanners\Contracts\ScannerInterface;
+use FahimTayebee\Preflight\Scanners\Contracts\ContextAwareScannerInterface;
 use FahimTayebee\Preflight\Scanners\AuthScanner;
 use FahimTayebee\Preflight\Scanners\BladeScanner;
 use FahimTayebee\Preflight\Scanners\ControllerScanner;
@@ -53,12 +54,13 @@ final class AuditManager
      * @param array<int, string> $skip
      * @return array<string, mixed>
      */
-    public function run(array $only = [], array $skip = [], bool $useBaseline = false, ?string $severityFilter = null, string $preset = 'default'): array
+    public function run(array $only = [], array $skip = [], bool $useBaseline = false, ?string $severityFilter = null, string $preset = 'default', ?ScannerContext $context = null, array $changedFilesMeta = []): array
     {
         $results = [];
         $timings = [];
+        $context ??= new ScannerContext(false, [], null, $this->paths->base(), $only, $skip);
 
-        foreach ($this->scanners($only, $skip) as $scanner) {
+        foreach ($this->scanners($only, $skip, $context) as $scanner) {
             $startedAt = microtime(true);
 
             foreach ($scanner->scan() as $result) {
@@ -121,6 +123,14 @@ final class AuditManager
                 'resolved' => $baselineResolved,
                 'file' => $baselineFile,
             ],
+            'changed_files' => array_merge([
+                'enabled' => false,
+                'base_ref' => null,
+                'count' => 0,
+                'files' => [],
+                'error' => null,
+                'fallback_used' => false,
+            ], $changedFilesMeta),
         ];
     }
 
@@ -129,7 +139,7 @@ final class AuditManager
      * @param array<int, string> $skip
      * @return array<int, ScannerInterface>
      */
-    private function scanners(array $only, array $skip): array
+    private function scanners(array $only, array $skip, ScannerContext $context): array
     {
         $enabled = $this->configuredScanners();
         $only = $this->normalizeList($only);
@@ -137,6 +147,8 @@ final class AuditManager
 
         if ($only !== []) {
             $enabled = array_values(array_intersect($enabled, $only));
+        } elseif ($context->isChangedMode()) {
+            $enabled = $this->changedModeScanners($enabled);
         }
 
         if ($skip !== []) {
@@ -150,7 +162,13 @@ final class AuditManager
                 continue;
             }
 
-            $scanners[] = $this->container->make($this->scannerMap[$name]);
+            $scanner = $this->container->make($this->scannerMap[$name]);
+
+            if ($scanner instanceof ContextAwareScannerInterface) {
+                $scanner->setContext($context);
+            }
+
+            $scanners[] = $scanner;
         }
 
         return $scanners;
@@ -341,5 +359,22 @@ final class AuditManager
             $enabled,
             static fn (string $name): bool => (bool) ($scanners[$name]['enabled'] ?? true)
         ));
+    }
+
+    /**
+     * @param array<int, string> $enabled
+     * @return array<int, string>
+     */
+    private function changedModeScanners(array $enabled): array
+    {
+        $fileScanners = $this->normalizeList((array) $this->config->get('preflight.changed_files.file_scanners', []));
+        $projectScanners = $this->normalizeList((array) $this->config->get('preflight.changed_files.project_scanners', []));
+        $allowed = $fileScanners;
+
+        if ((bool) $this->config->get('preflight.changed_files.include_project_scanners', true)) {
+            $allowed = array_values(array_unique(array_merge($allowed, $projectScanners)));
+        }
+
+        return array_values(array_intersect($enabled, $allowed));
     }
 }

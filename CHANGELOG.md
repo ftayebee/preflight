@@ -2,6 +2,20 @@
 
 All notable changes to `preflight` will be documented in this file.
 
+## [0.4.0] - Unreleased
+
+### Added
+
+- Changed-files audit mode with --changed.
+- Base ref support with --base-ref.
+- Scanner context for changed-file filtering.
+- Changed mode metadata in reports.
+- Changed-files documentation.
+
+### Improved
+
+- CI and pull request workflow documentation.
+
 ## [0.3.0] - Unreleased
 
 ### Added

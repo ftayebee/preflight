@@ -6,14 +6,18 @@ namespace FahimTayebee\Preflight\Scanners;
 
 use FahimTayebee\Preflight\Core\AuditResult;
 use FahimTayebee\Preflight\Core\Severity;
+use FahimTayebee\Preflight\Scanners\Concerns\UsesScannerContext;
+use FahimTayebee\Preflight\Scanners\Contracts\ContextAwareScannerInterface;
 use FahimTayebee\Preflight\Scanners\Contracts\ScannerInterface;
 use FahimTayebee\Preflight\Support\FileReader;
 use FahimTayebee\Preflight\Support\PathResolver;
 use FahimTayebee\Preflight\Support\ScannerOptionResolver;
 use Illuminate\Support\Str;
 
-final class PolicyScanner implements ScannerInterface
+final class PolicyScanner implements ScannerInterface, ContextAwareScannerInterface
 {
+    use UsesScannerContext;
+
     public function __construct(
         private readonly PathResolver $paths,
         private readonly FileReader $files,
@@ -177,7 +181,7 @@ final class PolicyScanner implements ScannerInterface
     {
         return array_values(array_filter(
             $this->files->files($directory),
-            fn (string $path): bool => ! $this->isIgnored($path)
+            fn (string $path): bool => ! $this->isIgnored($path) && $this->shouldScanFile($path)
         ));
     }
 

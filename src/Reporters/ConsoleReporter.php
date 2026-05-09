@@ -40,6 +40,30 @@ final class ConsoleReporter implements ReporterInterface
             $lines[] = ucfirst($severity->value) . ': ' . ($report['counts'][$severity->value] ?? 0);
         }
 
+        if (($report['changed_files']['enabled'] ?? false) === true) {
+            $lines[] = '';
+            $lines[] = 'Changed Files Mode:';
+            $lines[] = '- Enabled: yes';
+            $lines[] = '- Base Ref: ' . ($report['changed_files']['base_ref'] ?? 'unknown');
+            $lines[] = '- Changed Files: ' . ($report['changed_files']['count'] ?? 0);
+            $lines[] = '- Fallback Used: ' . (($report['changed_files']['fallback_used'] ?? false) ? 'yes' : 'no');
+
+            if (($report['changed_files']['fallback_used'] ?? false) === true) {
+                $lines[] = 'Changed mode warning: Could not resolve changed files. Falling back to full scan.';
+            }
+
+            if (($report['explain'] ?? false) === true && ($report['changed_files']['files'] ?? []) !== []) {
+                $lines[] = '- Files:';
+                foreach ($report['changed_files']['files'] as $file) {
+                    $lines[] = '  - ' . $file;
+                }
+            }
+
+            if (($report['changed_files']['count'] ?? 0) === 0 && ($report['meta']['scanner_count'] ?? 0) === 0) {
+                $lines[] = 'No changed files found.';
+            }
+        }
+
         $lines[] = '';
         $lines[] = 'Confidence:';
         $lines[] = '- High: ' . ($report['confidence_counts']['high'] ?? 0);

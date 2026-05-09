@@ -200,6 +200,43 @@ Change the baseline path:
 'baseline_file' => base_path('preflight-baseline.json'),
 ```
 
+## Changed Files
+
+Configure pull request changed-files mode:
+
+```php
+'changed_files' => [
+    'enabled' => true,
+    'default_base_ref' => 'origin/main',
+    'fallback_to_full_scan' => true,
+    'include_project_scanners' => true,
+    'file_scanners' => [
+        'controllers',
+        'models',
+        'migrations',
+        'requests',
+        'composer',
+        'blade',
+        'policies',
+    ],
+    'project_scanners' => [
+        'env',
+        'routes',
+        'auth',
+    ],
+],
+```
+
+`default_base_ref` is used when `--base-ref` is not passed.
+
+`fallback_to_full_scan` controls whether Git diff failures fall back to a normal full audit or fail the command.
+
+`include_project_scanners` controls whether project-wide scanners still run in changed mode.
+
+`file_scanners` lists scanners that can be filtered to changed files.
+
+`project_scanners` lists scanners that inspect project-level state.
+
 ## SARIF Config
 
 Customize SARIF tool metadata:

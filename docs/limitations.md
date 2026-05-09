@@ -21,3 +21,11 @@ Blade authorization checks can be noisy because templates vary widely and nearby
 Policy detection is convention-based and expects model and policy names such as `Product` and `ProductPolicy`.
 
 Auth route detection depends on route URI and middleware naming, so custom guards or permission middleware may need scanner option tuning.
+
+Changed mode depends on Git history availability.
+
+Shallow clones may need `fetch-depth: 0` or an explicit fetch of the base ref.
+
+Route, env, and auth checks are project-wide unless disabled in changed-files configuration.
+
+Some findings require a full scan and may not appear in changed-files mode.

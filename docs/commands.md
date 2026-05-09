@@ -17,6 +17,8 @@ Options:
 - `--skip=models`
 - `--explain`
 - `--preset=relaxed|default|strict`
+- `--changed`
+- `--base-ref=origin/main`
 
 ## preflight:rules
 

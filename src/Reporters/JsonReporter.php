@@ -32,6 +32,14 @@ final class JsonReporter implements ReporterInterface
                 'resolved' => 0,
                 'file' => null,
             ],
+            'changed_files' => $report['changed_files'] ?? [
+                'enabled' => false,
+                'base_ref' => null,
+                'count' => 0,
+                'files' => [],
+                'error' => null,
+                'fallback_used' => false,
+            ],
             'results' => array_map(
                 static fn (AuditResult $result): array => self::result($result, (bool) ($report['explain'] ?? false)),
                 $report['results']

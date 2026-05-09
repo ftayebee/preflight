@@ -101,6 +101,16 @@ php artisan preflight:audit --preset=strict --fail-on-severity=high
 
 Reports include `confidence_counts` so teams can see how many findings are high, medium, or low confidence.
 
+## Changed Files Mode
+
+Changed files mode is useful for pull requests. It uses Git diff output to scan changed files with file-based scanners, while still allowing project-wide checks such as env, routes, and auth.
+
+```bash
+php artisan preflight:audit --changed --base-ref=origin/main
+```
+
+The default base ref and fallback behavior are configurable. See [Changed files mode](docs/changed-files.md).
+
 ## False-Positive Guidance
 
 Preflight reports include confidence levels and, with `--explain`, rule-specific guidance for handling false positives. Prefer tuning scanner options or using a reviewed baseline before disabling broad rule groups.
@@ -253,6 +263,7 @@ Scanner behavior can be tuned without disabling entire rules:
 - [Configuration](docs/configuration.md)
 - [CI](docs/ci.md)
 - [Commands](docs/commands.md)
+- [Changed files](docs/changed-files.md)
 - [Examples](docs/examples.md)
 - [Explainability](docs/explainability.md)
 - [Fix examples](docs/fixes.md)

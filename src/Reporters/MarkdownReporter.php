@@ -43,6 +43,25 @@ final class MarkdownReporter implements ReporterInterface
             $lines[] = '| ' . ucfirst($severity->value) . ' | ' . ($report['counts'][$severity->value] ?? 0) . ' |';
         }
 
+        if (($report['changed_files']['enabled'] ?? false) === true) {
+            $lines = array_merge($lines, [
+                '',
+                '## Changed Files Mode',
+                '',
+                '| Field | Value |',
+                '|---|---|',
+                '| Enabled | yes |',
+                '| Base Ref | ' . ($report['changed_files']['base_ref'] ?? 'unknown') . ' |',
+                '| Changed Files | ' . ($report['changed_files']['count'] ?? 0) . ' |',
+                '| Fallback Used | ' . (($report['changed_files']['fallback_used'] ?? false) ? 'yes' : 'no') . ' |',
+            ]);
+
+            if (($report['changed_files']['fallback_used'] ?? false) === true) {
+                $lines[] = '';
+                $lines[] = 'Changed mode warning: Could not resolve changed files. Falling back to full scan.';
+            }
+        }
+
         $lines = array_merge($lines, [
             '',
             '## Confidence',
