@@ -362,5 +362,21 @@ return [
         'default_html' => storage_path('app/preflight-report.html'),
     ],
 
+    'ui' => [
+        'enabled' => false,
+        'path' => 'preflight',
+        'middleware' => [
+            'web',
+        ],
+        'allowed_environments' => [
+            'local',
+            'development',
+            'testing',
+        ],
+        'reports_directory' => storage_path('app/preflight'),
+        'fallback_report' => storage_path('app/preflight-report.html'),
+        'allow_run_audit_from_ui' => false,
+    ],
+
     'fail_under' => null,
 ];

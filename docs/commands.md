@@ -100,6 +100,12 @@ php artisan preflight:report --latest
 php artisan preflight:report --file=storage/app/preflight-report.html
 ```
 
+## Optional Route UI
+
+The optional route UI does not add new Artisan commands. Generate reports with `preflight:audit --format=html`, then enable the UI in config and visit `/preflight` to view available reports.
+
+See [ui.md](ui.md) for setup, middleware, and environment guard details.
+
 ## preflight:config-check
 
 Validates Preflight config.

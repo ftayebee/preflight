@@ -2,6 +2,19 @@
 
 All notable changes to `preflight` will be documented in this file.
 
+## [0.7.0] - Unreleased
+
+### Added
+
+- Optional route-based report UI.
+- Read-only report index.
+- Latest report viewer.
+- Specific report viewer.
+- Environment guard for UI access.
+- Middleware and path configuration.
+- Publishable report UI views.
+- UI documentation.
+
 ## [0.6.0] - Unreleased
 
 ### Added

@@ -105,6 +105,23 @@ php artisan preflight:report --file=storage/app/preflight-report.html
 
 The report viewer opens local HTML files. It does not create a persistent dashboard, require authentication, or use a database.
 
+## Optional Report UI
+
+Preflight can also register a small read-only Laravel route UI for viewing generated HTML reports in a browser. It is disabled by default and recommended for local or protected development environments only.
+
+```php
+'ui' => [
+    'enabled' => true,
+    'path' => 'preflight',
+    'middleware' => ['web', 'auth'],
+    'allowed_environments' => ['local', 'testing'],
+],
+```
+
+When enabled, visit `/preflight` to list reports or `/preflight/latest` to view the newest report. The UI does not run audits from the browser, does not use a database, and does not store history. Reports may include file paths, route names, and security findings, so do not expose it publicly without authentication and environment restrictions.
+
+See [docs/ui.md](docs/ui.md) for setup and security guidance.
+
 ## Explainability And Presets
 
 Use `--explain` when reviewing findings locally:

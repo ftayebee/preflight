@@ -39,6 +39,7 @@ final class DoctorCommand extends Command
         $this->validateScanners($errors, $checks);
         $this->validateSeverities($errors, $registry, $checks);
         $this->validateBaseline($warnings);
+        $ui = $this->uiStatus();
         $this->validateOutputPath($errors);
 
         $format = strtolower((string) $this->option('format'));
@@ -48,6 +49,7 @@ final class DoctorCommand extends Command
                 'errors' => $errors,
                 'warnings' => $warnings,
                 'checks' => $checks,
+                'ui' => $ui,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
             return $errors === [] ? self::SUCCESS : self::FAILURE;
@@ -74,6 +76,13 @@ final class DoctorCommand extends Command
         foreach ($errors === [] ? ['None'] : $errors as $error) {
             $this->line('- ' . $error);
         }
+        $this->line('');
+        $this->line('UI:');
+        $this->line('- UI enabled: ' . ($ui['enabled'] ? 'yes' : 'no'));
+        $this->line('- UI path: ' . $ui['path']);
+        $this->line('- UI allowed environments: ' . implode(', ', $ui['allowed_environments']));
+        $this->line('- Current environment allowed: ' . ($ui['current_environment_allowed'] ? 'yes' : 'no'));
+        $this->line('- Reports directory exists/readable: ' . ($ui['reports_directory_readable'] ? 'yes' : 'no'));
 
         return $errors === [] ? self::SUCCESS : self::FAILURE;
     }
@@ -159,5 +168,31 @@ final class DoctorCommand extends Command
         if (! is_dir($directory) && ! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
             $errors[] = 'Output directory cannot be written: ' . $directory;
         }
+    }
+
+    /**
+     * @return array{
+     *     enabled: bool,
+     *     path: string,
+     *     allowed_environments: array<int, string>,
+     *     current_environment_allowed: bool,
+     *     reports_directory: string|null,
+     *     reports_directory_readable: bool
+     * }
+     */
+    private function uiStatus(): array
+    {
+        $allowed = array_values(array_map('strval', (array) config('preflight.ui.allowed_environments', [])));
+        $directory = config('preflight.ui.reports_directory', config('preflight.reports.directory'));
+        $directory = is_string($directory) ? $directory : null;
+
+        return [
+            'enabled' => config('preflight.ui.enabled') === true,
+            'path' => trim((string) config('preflight.ui.path', 'preflight'), '/'),
+            'allowed_environments' => $allowed,
+            'current_environment_allowed' => $allowed !== [] && app()->environment($allowed),
+            'reports_directory' => $directory,
+            'reports_directory_readable' => is_string($directory) && is_dir($directory) && is_readable($directory),
+        ];
     }
 }

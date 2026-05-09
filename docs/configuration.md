@@ -259,7 +259,58 @@ Configure the default HTML output path:
 ],
 ```
 
-When `--format=html` is used without `--output`, Preflight writes to `html.default_output`.
+When `--format=html` is used without `--output`, Preflight writes to `reports.default_html` when configured, with `html.default_output` kept as a backward-compatible fallback.
+
+## Report Storage
+
+Configure report discovery paths:
+
+```php
+'reports' => [
+    'directory' => storage_path('app/preflight'),
+    'default_html' => storage_path('app/preflight-report.html'),
+],
+```
+
+`reports.directory` is used by `preflight:report --latest` and the optional route UI.
+
+`reports.default_html` is the preferred default path for generated HTML reports.
+
+## Optional Route UI
+
+Configure the read-only route UI:
+
+```php
+'ui' => [
+    'enabled' => false,
+    'path' => 'preflight',
+    'middleware' => [
+        'web',
+    ],
+    'allowed_environments' => [
+        'local',
+        'development',
+        'testing',
+    ],
+    'reports_directory' => storage_path('app/preflight'),
+    'fallback_report' => storage_path('app/preflight-report.html'),
+    'allow_run_audit_from_ui' => false,
+],
+```
+
+`enabled` controls whether routes are registered.
+
+`path` controls the route prefix, such as `/preflight`.
+
+`middleware` applies Laravel middleware to the UI routes.
+
+`allowed_environments` blocks access outside approved app environments.
+
+`reports_directory` is scanned for `.html` and `.htm` reports.
+
+`fallback_report` is included when it exists, even if it is outside the reports directory.
+
+`allow_run_audit_from_ui` is reserved for future use and remains disabled in this version.
 
 ## Config Check
 

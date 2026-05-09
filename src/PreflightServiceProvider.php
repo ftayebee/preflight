@@ -26,6 +26,16 @@ final class PreflightServiceProvider extends ServiceProvider
             __DIR__ . '/../config/preflight.php' => config_path('preflight.php'),
         ], 'preflight-config');
 
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'preflight');
+
+        $this->publishes([
+            __DIR__ . '/../resources/views' => resource_path('views/vendor/preflight'),
+        ], 'preflight-views');
+
+        if (config('preflight.ui.enabled') === true) {
+            $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
+        }
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 AuditCommand::class,

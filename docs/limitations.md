@@ -45,3 +45,11 @@ It does not host reports publicly.
 It does not store report history.
 
 It depends on the operating system browser-opening command being available.
+
+The route-based report UI is disabled by default.
+
+The route UI is read-only and does not run audits.
+
+The route UI does not store report history in a database.
+
+The route UI should not be exposed publicly unless protected by middleware and environment restrictions.
