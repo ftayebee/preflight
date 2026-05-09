@@ -56,6 +56,7 @@ php artisan preflight:audit --preset=strict --fail-on-severity=high
 | --- | --- |
 | `php artisan preflight:audit` | Run the audit and generate a report. |
 | `php artisan preflight:baseline` | Show, generate, prune, or clear the baseline. |
+| `php artisan preflight:report` | Open or generate a local HTML report. |
 | `php artisan preflight:rules` | List known rules and configured severities. |
 | `php artisan preflight:config-check` | Validate Preflight configuration. |
 | `php artisan preflight:doctor` | Check whether Preflight is ready in the host project. |
@@ -89,6 +90,20 @@ php artisan preflight:audit --format=html --output=storage/app/preflight-report.
 ```
 
 If `--format=html` is used without `--output`, Preflight saves to the configured default path: `storage/app/preflight-report.html`.
+
+## Local Report Viewer
+
+Open static HTML reports locally:
+
+```bash
+php artisan preflight:report
+php artisan preflight:report --generate
+php artisan preflight:report --generate --explain
+php artisan preflight:report --latest
+php artisan preflight:report --file=storage/app/preflight-report.html
+```
+
+The report viewer opens local HTML files. It does not create a persistent dashboard, require authentication, or use a database.
 
 ## Explainability And Presets
 

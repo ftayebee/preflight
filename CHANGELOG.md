@@ -2,6 +2,16 @@
 
 All notable changes to `preflight` will be documented in this file.
 
+## [0.6.0] - Unreleased
+
+### Added
+
+- preflight:report command.
+- Local HTML report viewer.
+- Generate-and-open report workflow.
+- Latest report detection.
+- Report opener support class.
+
 ## [0.5.0] - Unreleased
 
 ### Added

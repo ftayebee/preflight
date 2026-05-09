@@ -37,3 +37,11 @@ It does not provide a persistent dashboard.
 It does not store historical reports.
 
 Do not expose HTML reports publicly if file paths or project details are sensitive.
+
+The report viewer only opens local HTML files.
+
+It does not host reports publicly.
+
+It does not store report history.
+
+It depends on the operating system browser-opening command being available.

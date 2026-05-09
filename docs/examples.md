@@ -136,3 +136,33 @@ php artisan preflight:audit --format=html --output=storage/app/preflight-report.
 ```bash
 php artisan preflight:audit --changed --base-ref=origin/main --format=html --output=storage/app/preflight-report.html
 ```
+
+## Generate And Open HTML Report
+
+```bash
+php artisan preflight:report --generate
+```
+
+## Open Latest HTML Report
+
+```bash
+php artisan preflight:report --latest
+```
+
+## Open A Specific HTML Report
+
+```bash
+php artisan preflight:report --file=storage/app/preflight-report.html
+```
+
+## Generate Explainable Report
+
+```bash
+php artisan preflight:report --generate --explain
+```
+
+## Generate Changed-Files HTML Report
+
+```bash
+php artisan preflight:report --generate --changed --base-ref=origin/main
+```

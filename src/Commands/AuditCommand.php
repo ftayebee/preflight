@@ -16,6 +16,7 @@ use FahimTayebee\Preflight\Reporters\MarkdownReporter;
 use FahimTayebee\Preflight\Reporters\SarifReporter;
 use FahimTayebee\Preflight\Support\GitChangedFilesResolver;
 use FahimTayebee\Preflight\Support\PathResolver;
+use FahimTayebee\Preflight\Support\ReportOpener;
 use Illuminate\Console\Command;
 
 final class AuditCommand extends Command
@@ -57,6 +58,7 @@ final class AuditCommand extends Command
         HtmlReporter $htmlReporter,
         GitChangedFilesResolver $changedFilesResolver,
         PathResolver $paths,
+        ReportOpener $reportOpener,
     ): int {
         $format = strtolower((string) ($this->option('format') ?: config('preflight.default_format', 'console')));
         $severityFilter = $this->normalizedSeverityOption('severity');
@@ -152,7 +154,7 @@ final class AuditCommand extends Command
         $outputPath = $this->option('output');
 
         if ($format === 'html' && ($outputPath === null || $outputPath === '')) {
-            $outputPath = (string) config('preflight.html.default_output', storage_path('app/preflight-report.html'));
+            $outputPath = $this->defaultHtmlOutputPath();
             $this->warn('HTML format is best used with --output.');
         }
 
@@ -164,7 +166,7 @@ final class AuditCommand extends Command
             $this->line($format === 'html' ? 'HTML report saved to: ' . $outputPath : 'Report saved to: ' . $outputPath);
 
             if ($format === 'html' && (bool) $this->option('open')) {
-                $this->openHtmlReport((string) $outputPath);
+                $this->openHtmlReport((string) $outputPath, $reportOpener);
             }
         } else {
             $this->line($output);
@@ -275,31 +277,36 @@ final class AuditCommand extends Command
         return $path;
     }
 
-    private function openHtmlReport(string $path): void
+    private function openHtmlReport(string $path, ReportOpener $opener): void
     {
-        $resolved = $this->resolveOutputPath($path);
-        $command = PHP_OS_FAMILY === 'Windows'
-            ? ['cmd', '/c', 'start', '', $resolved]
-            : (PHP_OS_FAMILY === 'Darwin' ? ['open', $resolved] : ['xdg-open', $resolved]);
-
-        $descriptorSpec = [
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-        $process = @proc_open($command, $descriptorSpec, $pipes);
-
-        if (! is_resource($process)) {
-            $this->warn('Unable to open HTML report automatically.');
-            return;
-        }
-
-        foreach ($pipes as $pipe) {
-            fclose($pipe);
-        }
-
-        $exitCode = proc_close($process);
-        if ($exitCode !== 0) {
+        if (! $opener->open($this->resolveOutputPath($path))) {
             $this->warn('Unable to open HTML report automatically.');
         }
+    }
+
+    private function defaultHtmlOutputPath(): string
+    {
+        $packageDefault = storage_path('app/preflight-report.html');
+        $reportsDefault = config('preflight.reports.default_html');
+
+        if (is_string($reportsDefault) && $reportsDefault !== '' && $reportsDefault !== $packageDefault) {
+            return $reportsDefault;
+        }
+
+        $htmlDefault = config('preflight.html.default_output');
+
+        if (is_string($htmlDefault) && $htmlDefault !== '' && $htmlDefault !== $packageDefault) {
+            return $htmlDefault;
+        }
+
+        if (is_string($reportsDefault) && $reportsDefault !== '') {
+            return $reportsDefault;
+        }
+
+        if (is_string($htmlDefault) && $htmlDefault !== '') {
+            return $htmlDefault;
+        }
+
+        return $packageDefault;
     }
 }

@@ -357,5 +357,10 @@ return [
         'open_after_generation' => false,
     ],
 
+    'reports' => [
+        'directory' => storage_path('app/preflight'),
+        'default_html' => storage_path('app/preflight-report.html'),
+    ],
+
     'fail_under' => null,
 ];

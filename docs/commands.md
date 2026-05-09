@@ -76,6 +76,30 @@ php artisan preflight:baseline show --fail-on-new
 
 `--fail-on-resolved` returns exit code `1` when prune removes resolved baseline entries.
 
+## preflight:report
+
+Opens local Preflight HTML reports.
+
+Options:
+
+- `--file=path`
+- `--latest`
+- `--generate`
+- `--explain`
+- `--preset=relaxed|default|strict`
+- `--changed`
+- `--base-ref=origin/main`
+
+Examples:
+
+```bash
+php artisan preflight:report
+php artisan preflight:report --generate
+php artisan preflight:report --generate --explain
+php artisan preflight:report --latest
+php artisan preflight:report --file=storage/app/preflight-report.html
+```
+
 ## preflight:config-check
 
 Validates Preflight config.

@@ -9,6 +9,7 @@ use FahimTayebee\Preflight\Commands\BaselineCommand;
 use FahimTayebee\Preflight\Commands\ConfigCheckCommand;
 use FahimTayebee\Preflight\Commands\DoctorCommand;
 use FahimTayebee\Preflight\Commands\ListRulesCommand;
+use FahimTayebee\Preflight\Commands\ReportCommand;
 use FahimTayebee\Preflight\Commands\SelfTestCommand;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,6 +33,7 @@ final class PreflightServiceProvider extends ServiceProvider
                 ConfigCheckCommand::class,
                 DoctorCommand::class,
                 ListRulesCommand::class,
+                ReportCommand::class,
                 SelfTestCommand::class,
             ]);
         }

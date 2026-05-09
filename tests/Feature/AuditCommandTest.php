@@ -1196,6 +1196,9 @@ PHP);
             '--changed',
             '--base-ref',
             '--open',
+            '--file',
+            '--latest',
+            '--generate',
         ];
 
         $this->assertSame([], array_values(array_diff(array_unique($matches[0]), $supported)));
