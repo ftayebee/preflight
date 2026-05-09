@@ -1,0 +1,8 @@
+{
+  "require": {
+    "php": "^8.2"
+  },
+  "require-dev": {
+    "barryvdh/laravel-debugbar": "^3.0"
+  }
+}

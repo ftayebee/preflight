@@ -59,3 +59,163 @@ php artisan preflight:rules --format=md
 | `AUTH_ROUTE_MISSING_THROTTLE` | auth | medium | Detects login, registration, and password routes without throttle or rate limiting middleware. | Add throttle middleware or a named Laravel rate limiter to authentication routes. |
 | `AUTH_ADMIN_ROUTE_WEAK_MIDDLEWARE` | auth | high | Detects sensitive admin-like routes that use auth without role, permission, ability, or can middleware. | Add can:, role:, permission:, ability:, or abilities: middleware to sensitive routes. |
 | `AUTH_API_ROUTE_WEAK_GUARD` | auth | medium | Detects API routes using generic auth middleware without an explicit token guard. | Use auth:sanctum, auth:api, auth:passport, token middleware, or ability middleware for API routes. |
+
+## Important Rule Details
+
+### ENV_DEBUG_TRUE
+
+Impact: Debug mode can expose stack traces, environment values, SQL, and source paths to users.
+
+Bad example:
+
+```env
+APP_ENV=production
+APP_DEBUG=true
+```
+
+Better example:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+```
+
+False-positive guidance: If this is a local-only fixture, scan with local environment config or disable `ENV_DEBUG_TRUE` for that environment.
+
+### ROUTE_DESTRUCTIVE_GET
+
+Impact: GET requests may be triggered by crawlers, previews, browser prefetching, or accidental clicks, causing unintended state changes.
+
+Bad example:
+
+```php
+Route::get('/users/{user}/delete', [UserController::class, 'destroy']);
+```
+
+Better example:
+
+```php
+Route::delete('/users/{user}', [UserController::class, 'destroy'])
+    ->middleware(['auth', 'can:delete,user']);
+```
+
+False-positive guidance: Add the route to `ignored_routes`, `public_route_allowlist`, or disable the rule in `config/preflight.php`.
+
+### ROUTE_SENSITIVE_WITHOUT_AUTH
+
+Impact: Sensitive routes can expose admin, account, settings, payment, or user-management actions to unauthenticated visitors.
+
+Bad example:
+
+```php
+Route::get('/admin/users', [AdminUserController::class, 'index']);
+```
+
+Better example:
+
+```php
+Route::get('/admin/users', [AdminUserController::class, 'index'])
+    ->middleware(['auth', 'can:viewAny,App\Models\User']);
+```
+
+False-positive guidance: Add the route to `ignored_routes`, `public_route_allowlist`, or disable the rule in `config/preflight.php`.
+
+### CONTROLLER_MISSING_AUTHORIZATION
+
+Impact: Controller actions can become sensitive over time; missing visible authorization makes access control harder to review.
+
+Bad example:
+
+```php
+public function update(Request $request, Project $project)
+{
+    $project->update($request->validated());
+}
+```
+
+Better example:
+
+```php
+public function update(UpdateProjectRequest $request, Project $project)
+{
+    $this->authorize('update', $project);
+
+    $project->update($request->validated());
+}
+```
+
+False-positive guidance: Add project-specific authorization keywords under `scanners.controllers.options.authorization_keywords`.
+
+### MODEL_GUARDED_EMPTY
+
+Impact: Every current and future column becomes mass assignable, which can expose privilege or ownership fields to request input.
+
+Bad example:
+
+```php
+class User extends Model
+{
+    protected $guarded = [];
+}
+```
+
+Better example:
+
+```php
+class User extends Model
+{
+    protected $fillable = ['name', 'email'];
+}
+```
+
+False-positive guidance: Disable `MODEL_GUARDED_EMPTY` for trusted internal models or add model paths to `ignored_paths`.
+
+### REQUEST_AUTHORIZE_ALWAYS_TRUE
+
+Impact: Validation does not decide who may perform an action; sensitive requests still need authorization checks.
+
+Bad example:
+
+```php
+public function authorize(): bool
+{
+    return true;
+}
+```
+
+Better example:
+
+```php
+public function authorize(): bool
+{
+    return $this->user()?->can('update', $this->route('project')) ?? false;
+}
+```
+
+False-positive guidance: Add public request classes to `scanners.requests.options.allow_authorize_true_for`.
+
+### COMPOSER_DEBUG_PACKAGE_IN_REQUIRE
+
+Impact: Debug packages can expose application internals or add unnecessary production attack surface.
+
+Bad example:
+
+```json
+{
+  "require": {
+    "barryvdh/laravel-debugbar": "^3.0"
+  }
+}
+```
+
+Better example:
+
+```json
+{
+  "require-dev": {
+    "barryvdh/laravel-debugbar": "^3.0"
+  }
+}
+```
+
+False-positive guidance: Tune `scanners.composer.options.risky_packages_in_require` for project-specific debug packages.

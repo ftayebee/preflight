@@ -22,6 +22,9 @@ final class AuditCommand extends Command
     /** @var array<int, string> */
     private array $severities = ['critical', 'high', 'medium', 'low', 'info'];
 
+    /** @var array<int, string> */
+    private array $presets = ['relaxed', 'default', 'strict'];
+
     protected $signature = 'preflight:audit
         {--format=console : Output format: console, json, md, or sarif}
         {--output= : Save report output to a file path}
@@ -31,7 +34,9 @@ final class AuditCommand extends Command
         {--only=* : Run only specific scanners}
         {--skip=* : Skip specific scanners}
         {--baseline : Generate a baseline file from current issues}
-        {--use-baseline : Ignore issues already stored in baseline}';
+        {--use-baseline : Ignore issues already stored in baseline}
+        {--explain : Include expanded explanation, examples, docs, and false-positive guidance}
+        {--preset=default : Runtime preset: relaxed, default, or strict}';
 
     protected $description = 'Run a Preflight security audit against the host Laravel project.';
 
@@ -47,6 +52,7 @@ final class AuditCommand extends Command
         $severityFilter = $this->normalizedSeverityOption('severity');
         $failOnSeverity = $this->normalizedSeverityOption('fail-on-severity');
         $failUnder = $this->option('fail-under') ?? config('preflight.fail_under');
+        $preset = strtolower((string) ($this->option('preset') ?: 'default'));
 
         if (! in_array($format, $this->formats, true)) {
             $this->error('Invalid format. Supported formats: console, json, md, sarif');
@@ -60,12 +66,20 @@ final class AuditCommand extends Command
             return self::FAILURE;
         }
 
+        if (! in_array($preset, $this->presets, true)) {
+            $this->error('Invalid preset. Supported presets: relaxed, default, strict');
+
+            return self::FAILURE;
+        }
+
         $report = $manager->run(
             (array) $this->option('only'),
             (array) $this->option('skip'),
             (bool) $this->option('use-baseline'),
-            $severityFilter
+            $severityFilter,
+            $preset
         );
+        $report['explain'] = (bool) $this->option('explain');
 
         if ((bool) $this->option('baseline')) {
             try {

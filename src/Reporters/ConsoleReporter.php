@@ -21,6 +21,7 @@ final class ConsoleReporter implements ReporterInterface
             'Generated At: ' . ($report['meta']['generated_at'] ?? 'unknown'),
             'Project: ' . ($report['meta']['project_path'] ?? 'unknown'),
             'PHP: ' . ($report['meta']['php_version'] ?? PHP_VERSION),
+            'Preset: ' . ($report['meta']['preset'] ?? 'default'),
             '',
             'Score: ' . $report['score'] . '/100',
             'Total Issues: ' . $report['total_issues'],
@@ -36,6 +37,12 @@ final class ConsoleReporter implements ReporterInterface
         foreach ($this->orderedSeverities() as $severity) {
             $lines[] = ucfirst($severity->value) . ': ' . ($report['counts'][$severity->value] ?? 0);
         }
+
+        $lines[] = '';
+        $lines[] = 'Confidence:';
+        $lines[] = '- High: ' . ($report['confidence_counts']['high'] ?? 0);
+        $lines[] = '- Medium: ' . ($report['confidence_counts']['medium'] ?? 0);
+        $lines[] = '- Low: ' . ($report['confidence_counts']['low'] ?? 0);
 
         if (($report['baseline_ignored_issues'] ?? 0) > 0) {
             $lines[] = '';
@@ -78,6 +85,10 @@ final class ConsoleReporter implements ReporterInterface
                 if ($item->recommendation !== null) {
                     $lines[] = '  Recommendation: ' . $item->recommendation;
                 }
+
+                if (($report['explain'] ?? false) === true) {
+                    $this->appendExplanation($lines, $item);
+                }
             }
         }
 
@@ -95,6 +106,48 @@ final class ConsoleReporter implements ReporterInterface
         }
 
         return implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    /**
+     * @param array<int, string> $lines
+     */
+    private function appendExplanation(array &$lines, AuditResult $item): void
+    {
+        $impact = $item->metadata['impact'] ?? null;
+        $bad = $item->metadata['fix_example_bad'] ?? null;
+        $good = $item->metadata['fix_example_good'] ?? null;
+        $docsUrl = $item->metadata['docs_url'] ?? null;
+        $falsePositive = $item->metadata['false_positive_guidance'] ?? null;
+
+        if (is_string($impact) && $impact !== '') {
+            $lines[] = '  Why this matters: ' . $impact;
+        }
+
+        if (is_string($item->recommendation) && $item->recommendation !== '') {
+            $lines[] = '  How to fix: ' . $item->recommendation;
+        }
+
+        if (is_string($bad) && $bad !== '') {
+            $lines[] = '  Bad example:';
+            foreach (explode("\n", $bad) as $line) {
+                $lines[] = '    ' . $line;
+            }
+        }
+
+        if (is_string($good) && $good !== '') {
+            $lines[] = '  Better example:';
+            foreach (explode("\n", $good) as $line) {
+                $lines[] = '    ' . $line;
+            }
+        }
+
+        if (is_string($falsePositive) && $falsePositive !== '') {
+            $lines[] = '  False-positive guidance: ' . $falsePositive;
+        }
+
+        if (is_string($docsUrl) && $docsUrl !== '') {
+            $lines[] = '  Docs: ' . $docsUrl;
+        }
     }
 
     /**

@@ -21,6 +21,7 @@ final class MarkdownReporter implements ReporterInterface
             'Generated At: ' . ($report['meta']['generated_at'] ?? 'unknown') . '  ',
             'Project Path: ' . ($report['meta']['project_path'] ?? 'unknown') . '  ',
             'PHP Version: ' . ($report['meta']['php_version'] ?? PHP_VERSION) . '  ',
+            'Preset: ' . ($report['meta']['preset'] ?? 'default') . '  ',
             'Score: ' . $report['score'] . '/100  ',
             'Total Issues: ' . $report['total_issues'],
         ];
@@ -41,6 +42,17 @@ final class MarkdownReporter implements ReporterInterface
         foreach ($this->orderedSeverities() as $severity) {
             $lines[] = '| ' . ucfirst($severity->value) . ' | ' . ($report['counts'][$severity->value] ?? 0) . ' |';
         }
+
+        $lines = array_merge($lines, [
+            '',
+            '## Confidence',
+            '',
+            '| Confidence | Count |',
+            '|---|---:|',
+            '| High | ' . ($report['confidence_counts']['high'] ?? 0) . ' |',
+            '| Medium | ' . ($report['confidence_counts']['medium'] ?? 0) . ' |',
+            '| Low | ' . ($report['confidence_counts']['low'] ?? 0) . ' |',
+        ]);
 
         if (($report['baseline_ignored_issues'] ?? 0) > 0) {
             $lines[] = '';
@@ -89,10 +101,40 @@ final class MarkdownReporter implements ReporterInterface
                 $lines[] = '';
                 $lines[] = $this->escape($item->message);
                 $lines[] = '';
+
+                if (($report['explain'] ?? false) === true) {
+                    $this->appendExplanation($lines, $item);
+                }
             }
         }
 
         return rtrim(implode(PHP_EOL, $lines)) . PHP_EOL;
+    }
+
+    /**
+     * @param array<int, string> $lines
+     */
+    private function appendExplanation(array &$lines, AuditResult $item): void
+    {
+        $fields = [
+            'Why this matters' => $item->metadata['impact'] ?? null,
+            'How to fix' => $item->recommendation,
+            'Bad example' => $item->metadata['fix_example_bad'] ?? null,
+            'Better example' => $item->metadata['fix_example_good'] ?? null,
+            'False-positive guidance' => $item->metadata['false_positive_guidance'] ?? null,
+            'Docs URL' => $item->metadata['docs_url'] ?? null,
+        ];
+
+        foreach ($fields as $label => $value) {
+            if (! is_string($value) || $value === '') {
+                continue;
+            }
+
+            $lines[] = '**' . $label . ':**';
+            $lines[] = '';
+            $lines[] = $this->escape($value);
+            $lines[] = '';
+        }
     }
 
     private function escape(string $value): string

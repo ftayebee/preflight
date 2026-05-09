@@ -80,4 +80,23 @@ final class AuditResult
             $this->metadata,
         );
     }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    public function withMetadata(array $metadata): self
+    {
+        return new self(
+            $this->code,
+            $this->scanner,
+            $this->severity,
+            $this->title,
+            $this->message,
+            $this->file,
+            $this->line,
+            $this->recommendation,
+            $this->confidence,
+            array_merge($this->metadata, $metadata),
+        );
+    }
 }

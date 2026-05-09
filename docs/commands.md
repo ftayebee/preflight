@@ -15,6 +15,8 @@ Options:
 - `--fail-on-severity=critical|high|medium|low|info`
 - `--only=env`
 - `--skip=models`
+- `--explain`
+- `--preset=relaxed|default|strict`
 
 ## preflight:rules
 

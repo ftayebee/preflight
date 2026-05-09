@@ -41,6 +41,7 @@ final class AuditManager
         private readonly Container $container,
         private readonly BaselineManager $baseline,
         private readonly RuleManager $rules,
+        private readonly RuleRegistry $registry,
         private readonly FindingFingerprint $fingerprints,
         private readonly PackageInfo $package,
         private readonly PathResolver $paths,
@@ -52,7 +53,7 @@ final class AuditManager
      * @param array<int, string> $skip
      * @return array<string, mixed>
      */
-    public function run(array $only = [], array $skip = [], bool $useBaseline = false, ?string $severityFilter = null): array
+    public function run(array $only = [], array $skip = [], bool $useBaseline = false, ?string $severityFilter = null, string $preset = 'default'): array
     {
         $results = [];
         $timings = [];
@@ -70,6 +71,7 @@ final class AuditManager
         }
 
         $results = $this->rules->apply($results);
+        $results = $this->enrich($results);
         $results = $this->deduplicate($results);
         $baselineIgnored = 0;
 
@@ -78,6 +80,8 @@ final class AuditManager
             $results = $baselineResult['results'];
             $baselineIgnored = $baselineResult['ignored'];
         }
+
+        $results = $this->applyPreset($results, $preset);
 
         $visibleResults = $severityFilter === null
             ? $results
@@ -94,11 +98,13 @@ final class AuditManager
                 'scanner_count' => count($timings),
                 'enabled_scanners' => array_keys($timings),
                 'skipped_scanners' => array_values(array_diff(array_keys($this->scannerMap), array_keys($timings))),
+                'preset' => $preset,
             ],
             'results' => $visibleResults,
             'all_results' => $results,
             'score' => $this->score($results),
             'counts' => $this->counts($results),
+            'confidence_counts' => $this->confidenceCounts($results),
             'total_issues' => count($results),
             'visible_issues' => count($visibleResults),
             'filtered' => $severityFilter !== null,
@@ -178,6 +184,25 @@ final class AuditManager
 
     /**
      * @param array<int, AuditResult> $results
+     * @return array<string, int>
+     */
+    private function confidenceCounts(array $results): array
+    {
+        $counts = [
+            'high' => 0,
+            'medium' => 0,
+            'low' => 0,
+        ];
+
+        foreach ($results as $result) {
+            $counts[$result->confidence] = ($counts[$result->confidence] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param array<int, AuditResult> $results
      * @return array<int, AuditResult>
      */
     private function filterBySeverity(array $results, string $severity): array
@@ -215,6 +240,45 @@ final class AuditManager
         }
 
         return array_values($deduped);
+    }
+
+    /**
+     * @param array<int, AuditResult> $results
+     * @return array<int, AuditResult>
+     */
+    private function enrich(array $results): array
+    {
+        return array_map(function (AuditResult $result): AuditResult {
+            $rule = $this->registry->get($result->code);
+
+            if ($rule === []) {
+                return $result;
+            }
+
+            return $result->withMetadata([
+                'impact' => $rule['impact'] ?? null,
+                'fix_example_bad' => $rule['fix_example_bad'] ?? null,
+                'fix_example_good' => $rule['fix_example_good'] ?? null,
+                'docs_url' => $rule['docs_url'] ?? null,
+                'false_positive_guidance' => $rule['false_positive_guidance'] ?? null,
+            ]);
+        }, $results);
+    }
+
+    /**
+     * @param array<int, AuditResult> $results
+     * @return array<int, AuditResult>
+     */
+    private function applyPreset(array $results, string $preset): array
+    {
+        if ($preset !== 'relaxed') {
+            return $results;
+        }
+
+        return array_values(array_filter(
+            $results,
+            static fn (AuditResult $result): bool => $result->confidence !== 'low'
+        ));
     }
 
     private function preferStronger(AuditResult $first, AuditResult $second): AuditResult

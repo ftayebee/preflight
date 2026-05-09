@@ -91,6 +91,10 @@ final class SarifReporter implements ReporterInterface
                 ];
             }
 
+            if (is_string($result->metadata['docs_url'] ?? null) && $result->metadata['docs_url'] !== '') {
+                $rule['helpUri'] = $result->metadata['docs_url'];
+            }
+
             $rules[$result->code] = $rule;
         }
 
@@ -113,8 +117,17 @@ final class SarifReporter implements ReporterInterface
                 'scanner' => $result->scanner,
                 'confidence' => $result->confidence,
                 'recommendation' => $result->recommendation,
+                'docs_url' => $result->metadata['docs_url'] ?? null,
             ],
         ];
+
+        if (is_string($result->metadata['impact'] ?? null)) {
+            $sarif['properties']['impact'] = $result->metadata['impact'];
+        }
+
+        if (is_string($result->metadata['false_positive_guidance'] ?? null)) {
+            $sarif['properties']['false_positive_guidance'] = $result->metadata['false_positive_guidance'];
+        }
 
         if ($result->file !== null) {
             $physicalLocation = [

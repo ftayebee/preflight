@@ -86,6 +86,104 @@ final class AuditCommandTest extends TestCase
         $this->assertSame('high', $payload['results'][0]['confidence']);
     }
 
+    public function test_explain_console_output_includes_explanation_text(): void
+    {
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=base64:test\n");
+
+        $exitCode = Artisan::call('preflight:audit', ['--explain' => true]);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Why this matters:', $output);
+        $this->assertStringContainsString('Bad example:', $output);
+        $this->assertStringContainsString('Better example:', $output);
+        $this->assertStringContainsString('Docs:', $output);
+    }
+
+    public function test_json_report_includes_confidence_counts(): void
+    {
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=\n");
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'json']);
+        $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertArrayHasKey('confidence_counts', $payload);
+        $this->assertArrayHasKey('high', $payload['confidence_counts']);
+    }
+
+    public function test_markdown_report_includes_confidence_summary(): void
+    {
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=base64:test\n");
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'md']);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('## Confidence', $output);
+        $this->assertStringContainsString('| High |', $output);
+    }
+
+    public function test_sarif_includes_help_uri_for_rule_docs(): void
+    {
+        config()->set('preflight.enabled_scanners', ['env']);
+        file_put_contents(base_path('.env'), "APP_ENV=production\nAPP_DEBUG=true\nAPP_KEY=base64:test\n");
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'sarif']);
+        $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame(
+            'https://github.com/ftayebee/preflight/blob/main/docs/rules.md#env_debug_true',
+            $payload['runs'][0]['tool']['driver']['rules'][0]['helpUri']
+        );
+    }
+
+    public function test_invalid_preset_fails(): void
+    {
+        config()->set('preflight.enabled_scanners', []);
+
+        $exitCode = Artisan::call('preflight:audit', ['--preset' => 'loud']);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid preset. Supported presets: relaxed, default, strict', Artisan::output());
+    }
+
+    public function test_relaxed_preset_hides_low_confidence_findings(): void
+    {
+        config()->set('preflight.enabled_scanners', ['blade']);
+        config()->set('preflight.rules.BLADE_UNGUARDED_ADMIN_ACTION.enabled', true);
+        $path = $this->writeBlade('relaxed-admin.blade.php', '<a href="/admin/users/1/edit">Edit admin</a>');
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'json', '--preset' => 'relaxed']);
+        $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame('relaxed', $payload['meta']['preset']);
+        $this->assertNotContains('BLADE_UNGUARDED_ADMIN_ACTION', array_column($payload['results'], 'code'));
+
+        @unlink($path);
+    }
+
+    public function test_strict_preset_includes_low_confidence_findings(): void
+    {
+        config()->set('preflight.enabled_scanners', ['blade']);
+        config()->set('preflight.rules.BLADE_UNGUARDED_ADMIN_ACTION.enabled', true);
+        $path = $this->writeBlade('strict-admin.blade.php', '<a href="/admin/users/1/edit">Edit admin</a>');
+
+        $exitCode = Artisan::call('preflight:audit', ['--format' => 'json', '--preset' => 'strict']);
+        $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame('strict', $payload['meta']['preset']);
+        $this->assertContains('BLADE_UNGUARDED_ADMIN_ACTION', array_column($payload['results'], 'code'));
+
+        @unlink($path);
+    }
+
     public function test_markdown_report_generation(): void
     {
         $result = new AuditResult(
@@ -923,6 +1021,8 @@ PHP);
             '--fail-on-severity',
             '--only',
             '--skip',
+            '--explain',
+            '--preset',
         ];
 
         $this->assertSame([], array_values(array_diff(array_unique($matches[0]), $supported)));

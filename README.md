@@ -45,6 +45,9 @@ php artisan preflight:audit --baseline
 php artisan preflight:audit --use-baseline
 php artisan preflight:audit --fail-under=80
 php artisan preflight:audit --fail-on-severity=critical
+php artisan preflight:audit --explain
+php artisan preflight:audit --preset=relaxed
+php artisan preflight:audit --preset=strict --fail-on-severity=high
 ```
 
 ## Commands
@@ -73,6 +76,29 @@ SARIF output can be uploaded to GitHub Code Scanning:
 ```bash
 php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif
 ```
+
+## Explainability And Presets
+
+Use `--explain` when reviewing findings locally:
+
+```bash
+php artisan preflight:audit --explain
+```
+
+Expanded output includes why the finding matters, how to fix it, bad and better examples when available, false-positive guidance, and a rule docs URL.
+
+Use presets to adjust runtime reporting without changing config:
+
+```bash
+php artisan preflight:audit --preset=relaxed
+php artisan preflight:audit --preset=strict --fail-on-severity=high
+```
+
+- `relaxed` hides low-confidence findings for first adoption runs.
+- `default` preserves normal behavior.
+- `strict` includes all enabled rules and low-confidence findings for mature CI.
+
+Reports include `confidence_counts` so teams can see how many findings are high, medium, or low confidence.
 
 ## Scanners
 
@@ -177,6 +203,7 @@ Scanner behavior can be tuned without disabling entire rules:
 - [CI](docs/ci.md)
 - [Commands](docs/commands.md)
 - [Examples](docs/examples.md)
+- [Explainability](docs/explainability.md)
 - [Fix examples](docs/fixes.md)
 - [False positives](docs/false-positives.md)
 - [Limitations](docs/limitations.md)
@@ -192,6 +219,7 @@ Preflight is honest about what it is and is not:
 - It does not guarantee a project is secure.
 - It does not perform dependency vulnerability database scanning.
 - It does not execute application code or perform runtime testing.
+- It uses static and convention-based checks, so confidence and false-positive guidance should be reviewed alongside severity.
 
 ## Roadmap
 
