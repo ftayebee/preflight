@@ -103,6 +103,52 @@ Each scanner supports an `options` array. These options let teams tune Preflight
 ],
 ```
 
+### Policy Scanner
+
+```php
+'policies' => [
+    'enabled' => true,
+    'options' => [
+        'important_model_names' => ['User', 'Admin', 'Payment', 'Order'],
+        'ignored_models' => ['AuditLog'],
+        'required_policy_methods' => ['viewAny', 'view', 'create', 'update', 'delete'],
+        'allow_policy_before_true' => true,
+    ],
+],
+```
+
+Policy detection is convention-based: `app/Models/Order.php` maps to `app/Policies/OrderPolicy.php`.
+
+### Blade Scanner
+
+```php
+'blade' => [
+    'enabled' => true,
+    'options' => [
+        'authorization_directives' => ['@can', '@cannot', '@role', '@permission', '@auth', '@unless'],
+        'admin_action_keywords' => ['delete', 'destroy', 'edit', 'role', 'permission', 'admin', 'payment'],
+        'ignored_view_paths' => ['resources/views/vendor/*'],
+    ],
+],
+```
+
+The `BLADE_UNGUARDED_ADMIN_ACTION` rule is disabled by default because it is intentionally heuristic and can be noisy.
+
+### Auth Scanner
+
+```php
+'auth' => [
+    'enabled' => true,
+    'options' => [
+        'auth_route_keywords' => ['login', 'register', 'password', 'forgot-password', 'reset-password'],
+        'rate_limit_keywords' => ['throttle', 'rate'],
+        'admin_authorization_keywords' => ['can:', 'permission:', 'role:', 'abilities:', 'ability:'],
+        'api_auth_keywords' => ['auth:sanctum', 'auth:api', 'auth:passport', 'token', 'ability:', 'abilities:'],
+        'public_route_allowlist' => ['internal/login-preview'],
+    ],
+],
+```
+
 ## Rule Enablement
 
 Disable a rule when it does not apply to a project:
@@ -110,6 +156,10 @@ Disable a rule when it does not apply to a project:
 ```php
 'rules' => [
     'ROUTE_NO_MIDDLEWARE' => [
+        'enabled' => false,
+    ],
+
+    'BLADE_UNGUARDED_ADMIN_ACTION' => [
         'enabled' => false,
     ],
 ],

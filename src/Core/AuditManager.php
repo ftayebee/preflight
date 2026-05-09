@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace FahimTayebee\Preflight\Core;
 
 use FahimTayebee\Preflight\Scanners\Contracts\ScannerInterface;
+use FahimTayebee\Preflight\Scanners\AuthScanner;
+use FahimTayebee\Preflight\Scanners\BladeScanner;
 use FahimTayebee\Preflight\Scanners\ControllerScanner;
 use FahimTayebee\Preflight\Scanners\ComposerScanner;
 use FahimTayebee\Preflight\Scanners\EnvScanner;
 use FahimTayebee\Preflight\Scanners\MigrationScanner;
 use FahimTayebee\Preflight\Scanners\ModelScanner;
+use FahimTayebee\Preflight\Scanners\PolicyScanner;
 use FahimTayebee\Preflight\Scanners\RequestScanner;
 use FahimTayebee\Preflight\Scanners\RouteScanner;
 use FahimTayebee\Preflight\Support\PackageInfo;
@@ -28,6 +31,9 @@ final class AuditManager
         'migrations' => MigrationScanner::class,
         'requests' => RequestScanner::class,
         'composer' => ComposerScanner::class,
+        'policies' => PolicyScanner::class,
+        'blade' => BladeScanner::class,
+        'auth' => AuthScanner::class,
     ];
 
     public function __construct(

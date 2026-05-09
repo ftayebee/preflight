@@ -83,6 +83,11 @@ php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif
 - `MigrationScanner`
 - `RequestScanner`
 - `ComposerScanner`
+- `PolicyScanner`
+- `BladeScanner`
+- `AuthScanner`
+
+`BLADE_UNGUARDED_ADMIN_ACTION` is disabled by default because Blade authorization hints are heuristic and may be noisy.
 
 ## CI Usage
 
@@ -172,6 +177,7 @@ Scanner behavior can be tuned without disabling entire rules:
 - [CI](docs/ci.md)
 - [Commands](docs/commands.md)
 - [Examples](docs/examples.md)
+- [Fix examples](docs/fixes.md)
 - [False positives](docs/false-positives.md)
 - [Limitations](docs/limitations.md)
 - [Rules](docs/rules.md)
@@ -190,8 +196,6 @@ Preflight is honest about what it is and is not:
 ## Roadmap
 
 - More scanner accuracy improvements.
-- Better Laravel policy detection.
-- Blade scanner.
 - More framework-specific checks.
 - Stable v1.0 rule API.
 

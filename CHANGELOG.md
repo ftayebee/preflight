@@ -2,6 +2,20 @@
 
 All notable changes to `preflight` will be documented in this file.
 
+## [0.2.0] - Unreleased
+
+### Added
+
+- PolicyScanner.
+- BladeScanner.
+- AuthScanner.
+- Fix examples documentation.
+
+### Improved
+
+- Laravel-specific audit coverage.
+- Rule recommendations.
+
 ## [0.1.0] - 2026-05-09
 
 ### Added

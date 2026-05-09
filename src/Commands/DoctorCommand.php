@@ -92,7 +92,7 @@ final class DoctorCommand extends Command
      */
     private function validateScanners(array &$errors, array &$checks): void
     {
-        $valid = ['env', 'routes', 'controllers', 'models', 'migrations', 'requests', 'composer'];
+        $valid = ['env', 'routes', 'controllers', 'models', 'migrations', 'requests', 'composer', 'policies', 'blade', 'auth'];
 
         foreach ((array) config('preflight.scanners', []) as $scanner => $settings) {
             if (! in_array((string) $scanner, $valid, true)) {

@@ -7,10 +7,14 @@ namespace FahimTayebee\Preflight\Tests\Feature;
 use FahimTayebee\Preflight\Core\AuditManager;
 use FahimTayebee\Preflight\Core\AuditResult;
 use FahimTayebee\Preflight\Core\BaselineManager;
+use FahimTayebee\Preflight\Core\RuleRegistry;
 use FahimTayebee\Preflight\Core\Severity;
 use FahimTayebee\Preflight\Reporters\MarkdownReporter;
+use FahimTayebee\Preflight\Scanners\AuthScanner;
+use FahimTayebee\Preflight\Scanners\BladeScanner;
 use FahimTayebee\Preflight\Scanners\EnvScanner;
 use FahimTayebee\Preflight\Scanners\ComposerScanner;
+use FahimTayebee\Preflight\Scanners\PolicyScanner;
 use FahimTayebee\Preflight\Scanners\RequestScanner;
 use FahimTayebee\Preflight\Support\FileReader;
 use FahimTayebee\Preflight\Support\PackageInfo;
@@ -299,9 +303,13 @@ final class AuditCommandTest extends TestCase
     public function test_rules_command_works(): void
     {
         $exitCode = Artisan::call('preflight:rules');
+        $output = Artisan::output();
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('ENV_DEBUG_TRUE', Artisan::output());
+        $this->assertStringContainsString('ENV_DEBUG_TRUE', $output);
+        $this->assertStringContainsString('POLICY_MISSING_FOR_MODEL', $output);
+        $this->assertStringContainsString('BLADE_RAW_OUTPUT', $output);
+        $this->assertStringContainsString('AUTH_ADMIN_ROUTE_WEAK_MIDDLEWARE', $output);
     }
 
     public function test_rules_command_json_returns_valid_json(): void
@@ -312,6 +320,9 @@ final class AuditCommandTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertSame('ENV_DEBUG_TRUE', $payload[0]['code']);
         $this->assertArrayHasKey('configured_severity', $payload[0]);
+        $this->assertContains('POLICY_ALWAYS_TRUE', array_column($payload, 'code'));
+        $this->assertContains('BLADE_FORM_MISSING_CSRF', array_column($payload, 'code'));
+        $this->assertContains('AUTH_API_ROUTE_WEAK_GUARD', array_column($payload, 'code'));
     }
 
     public function test_rules_command_md_returns_markdown_text(): void
@@ -322,6 +333,242 @@ final class AuditCommandTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('# Preflight Rules', $output);
         $this->assertStringContainsString('## ENV_DEBUG_TRUE', $output);
+        $this->assertStringContainsString('## POLICY_METHOD_MISSING', $output);
+        $this->assertStringContainsString('## BLADE_UNGUARDED_ADMIN_ACTION', $output);
+        $this->assertStringContainsString('## AUTH_ROUTE_MISSING_THROTTLE', $output);
+    }
+
+    public function test_policy_scanner_reports_important_model_without_policy(): void
+    {
+        $modelDir = base_path('app/Models');
+        is_dir($modelDir) || mkdir($modelDir, 0755, true);
+        $path = $modelDir . '/Payment.php';
+        file_put_contents($path, <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Payment extends Model
+{
+}
+PHP);
+
+        $results = app(PolicyScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'POLICY_MISSING_FOR_MODEL'
+                && $result->metadata['model'] === 'Payment'
+        ));
+
+        @unlink($path);
+    }
+
+    public function test_policy_scanner_reports_missing_required_method(): void
+    {
+        $policyDir = base_path('app/Policies');
+        $modelDir = base_path('app/Models');
+        is_dir($policyDir) || mkdir($policyDir, 0755, true);
+        is_dir($modelDir) || mkdir($modelDir, 0755, true);
+        file_put_contents($modelDir . '/Order.php', '<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Order extends Model {}');
+        file_put_contents($policyDir . '/OrderPolicy.php', <<<'PHP'
+<?php
+
+namespace App\Policies;
+
+class OrderPolicy
+{
+    public function viewAny($user): bool { return $user->id > 0; }
+}
+PHP);
+
+        $results = app(PolicyScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'POLICY_METHOD_MISSING'
+                && $result->metadata['policy'] === 'OrderPolicy'
+                && $result->metadata['method'] === 'view'
+        ));
+
+        @unlink($modelDir . '/Order.php');
+        @unlink($policyDir . '/OrderPolicy.php');
+    }
+
+    public function test_policy_scanner_reports_policy_method_return_true(): void
+    {
+        $policyDir = base_path('app/Policies');
+        $modelDir = base_path('app/Models');
+        is_dir($policyDir) || mkdir($policyDir, 0755, true);
+        is_dir($modelDir) || mkdir($modelDir, 0755, true);
+        file_put_contents($modelDir . '/Invoice.php', '<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Invoice extends Model {}');
+        file_put_contents($policyDir . '/InvoicePolicy.php', <<<'PHP'
+<?php
+
+namespace App\Policies;
+
+class InvoicePolicy
+{
+    public function view($user, $invoice): bool
+    {
+        return true;
+    }
+}
+PHP);
+
+        $results = app(PolicyScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'POLICY_ALWAYS_TRUE'
+                && $result->metadata['method'] === 'view'
+        ));
+
+        @unlink($modelDir . '/Invoice.php');
+        @unlink($policyDir . '/InvoicePolicy.php');
+    }
+
+    public function test_policy_scanner_ignored_model_does_not_report(): void
+    {
+        $modelDir = base_path('app/Models');
+        is_dir($modelDir) || mkdir($modelDir, 0755, true);
+        $path = $modelDir . '/Team.php';
+        file_put_contents($path, '<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Team extends Model {}');
+        config()->set('preflight.scanners.policies.options.ignored_models', ['Team']);
+
+        $results = app(PolicyScanner::class)->scan();
+
+        $this->assertFalse(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'POLICY_MISSING_FOR_MODEL'
+                && $result->metadata['model'] === 'Team'
+        ));
+
+        @unlink($path);
+    }
+
+    public function test_blade_scanner_reports_raw_output(): void
+    {
+        $path = $this->writeBlade('raw.blade.php', '<p>{!! $name !!}</p>');
+
+        $results = app(BladeScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(fn (AuditResult $result): bool => $result->code === 'BLADE_RAW_OUTPUT'));
+
+        @unlink($path);
+    }
+
+    public function test_blade_scanner_reports_post_form_without_csrf(): void
+    {
+        $path = $this->writeBlade('missing-csrf.blade.php', '<form method="POST" action="/users"><button>Save</button></form>');
+
+        $results = app(BladeScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(fn (AuditResult $result): bool => $result->code === 'BLADE_FORM_MISSING_CSRF'));
+
+        @unlink($path);
+    }
+
+    public function test_blade_scanner_does_not_report_post_form_with_csrf(): void
+    {
+        $path = $this->writeBlade('with-csrf.blade.php', '<form method="POST" action="/users">@csrf<button>Save</button></form>');
+
+        $results = app(BladeScanner::class)->scan();
+
+        $this->assertFalse(collect($results)->contains(fn (AuditResult $result): bool => $result->code === 'BLADE_FORM_MISSING_CSRF'));
+
+        @unlink($path);
+    }
+
+    public function test_blade_scanner_reports_delete_form_without_method_spoofing(): void
+    {
+        $path = $this->writeBlade('delete.blade.php', '<form method="POST" action="/users/1/delete">@csrf<button>Delete</button></form>');
+
+        $results = app(BladeScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(fn (AuditResult $result): bool => $result->code === 'BLADE_DELETE_FORM_MISSING_METHOD'));
+
+        @unlink($path);
+    }
+
+    public function test_blade_unguarded_admin_action_is_disabled_by_default(): void
+    {
+        config()->set('preflight.enabled_scanners', ['blade']);
+        $path = $this->writeBlade('unguarded.blade.php', '<a href="/admin/users/1/edit">Edit admin</a>');
+
+        $report = app(AuditManager::class)->run();
+
+        $this->assertFalse(collect($report['all_results'])->contains(fn (AuditResult $result): bool => $result->code === 'BLADE_UNGUARDED_ADMIN_ACTION'));
+
+        @unlink($path);
+    }
+
+    public function test_auth_scanner_reports_login_route_without_throttle(): void
+    {
+        app('router')->post('login', ['middleware' => ['web'], 'uses' => 'AuthController@login']);
+
+        $results = app(AuthScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'AUTH_ROUTE_MISSING_THROTTLE'
+                && $result->metadata['uri'] === 'login'
+        ));
+    }
+
+    public function test_auth_scanner_reports_admin_route_with_only_auth(): void
+    {
+        app('router')->get('admin/users', ['middleware' => ['auth'], 'uses' => 'AdminController@index']);
+
+        $results = app(AuthScanner::class)->scan();
+
+        $this->assertTrue(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'AUTH_ADMIN_ROUTE_WEAK_MIDDLEWARE'
+                && $result->metadata['uri'] === 'admin/users'
+        ));
+    }
+
+    public function test_auth_scanner_does_not_report_admin_route_with_permission(): void
+    {
+        app('router')->get('admin/roles', ['middleware' => ['auth', 'permission:manage roles'], 'uses' => 'AdminController@roles']);
+
+        $results = app(AuthScanner::class)->scan();
+
+        $this->assertFalse(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'AUTH_ADMIN_ROUTE_WEAK_MIDDLEWARE'
+                && $result->metadata['uri'] === 'admin/roles'
+        ));
+    }
+
+    public function test_auth_scanner_does_not_report_api_route_with_sanctum(): void
+    {
+        app('router')->get('api/profile', ['middleware' => ['api', 'auth:sanctum'], 'uses' => 'ApiController@profile']);
+
+        $results = app(AuthScanner::class)->scan();
+
+        $this->assertFalse(collect($results)->contains(
+            fn (AuditResult $result): bool => $result->code === 'AUTH_API_ROUTE_WEAK_GUARD'
+                && $result->metadata['uri'] === 'api/profile'
+        ));
+    }
+
+    public function test_new_issue_codes_exist_in_rule_registry(): void
+    {
+        $registry = app(RuleRegistry::class)->all();
+
+        foreach ([
+            'POLICY_MISSING_FOR_MODEL',
+            'POLICY_METHOD_MISSING',
+            'POLICY_ALWAYS_TRUE',
+            'POLICY_MODEL_NOT_FOUND',
+            'BLADE_RAW_OUTPUT',
+            'BLADE_FORM_MISSING_CSRF',
+            'BLADE_DELETE_FORM_MISSING_METHOD',
+            'BLADE_UNGUARDED_ADMIN_ACTION',
+            'AUTH_ROUTE_MISSING_THROTTLE',
+            'AUTH_ADMIN_ROUTE_WEAK_MIDDLEWARE',
+            'AUTH_API_ROUTE_WEAK_GUARD',
+        ] as $code) {
+            $this->assertArrayHasKey($code, $registry);
+            $this->assertArrayHasKey('recommendation', $registry[$code]);
+        }
     }
 
     public function test_request_scanner_detects_missing_authorize(): void
@@ -679,5 +926,15 @@ PHP);
         ];
 
         $this->assertSame([], array_values(array_diff(array_unique($matches[0]), $supported)));
+    }
+
+    private function writeBlade(string $name, string $contents): string
+    {
+        $directory = base_path('resources/views');
+        is_dir($directory) || mkdir($directory, 0755, true);
+        $path = $directory . '/' . $name;
+        file_put_contents($path, $contents);
+
+        return $path;
     }
 }

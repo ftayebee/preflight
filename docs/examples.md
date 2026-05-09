@@ -64,3 +64,51 @@ php artisan preflight:audit --format=sarif --output=storage/app/preflight.sarif 
     ],
 ],
 ```
+
+## Auditing Blade Templates
+
+```bash
+php artisan preflight:audit --only=blade
+```
+
+Useful for reviewing raw output, missing CSRF directives, and destructive forms:
+
+```blade
+<form method="POST" action="/users/{{ $user->id }}/delete">
+    @csrf
+    @method('DELETE')
+    <button>Delete</button>
+</form>
+```
+
+`BLADE_UNGUARDED_ADMIN_ACTION` is disabled by default. Enable it when you want low-confidence hints for sensitive links, buttons, and forms.
+
+## Auditing Policies
+
+```bash
+php artisan preflight:audit --only=policies
+```
+
+Tune important models for your domain:
+
+```php
+'policies' => [
+    'options' => [
+        'important_model_names' => ['User', 'Team', 'Project', 'Invoice'],
+        'ignored_models' => ['AuditLog'],
+    ],
+],
+```
+
+## Auditing Auth Routes
+
+```bash
+php artisan preflight:audit --only=auth
+```
+
+Typical protected admin routes combine identity and authorization:
+
+```php
+Route::get('/admin/users', [AdminUserController::class, 'index'])
+    ->middleware(['auth', 'permission:users.view']);
+```

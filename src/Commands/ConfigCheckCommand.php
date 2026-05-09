@@ -174,6 +174,9 @@ final class ConfigCheckCommand extends Command
             || str_ends_with($key, '_fields')
             || str_ends_with($key, '_columns')
             || str_ends_with($key, '_names')
-            || in_array($key, ['allow_authorize_true_for', 'risky_packages_in_require', 'suspicious_columns', 'public_route_allowlist'], true);
+            || str_ends_with($key, '_methods')
+            || str_ends_with($key, '_directives')
+            || str_ends_with($key, '_paths')
+            || in_array($key, ['allow_authorize_true_for', 'risky_packages_in_require', 'suspicious_columns', 'public_route_allowlist', 'ignored_models'], true);
     }
 }
